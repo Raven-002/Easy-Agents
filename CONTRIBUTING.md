@@ -49,12 +49,11 @@ Ready to contribute? Here's how to set up `ai_cr` for local development.
    git clone git@github.com:your_name_here/ai_cr.git
    ```
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development:
+3. Install your local copy into a virtualenv. This is how you set up your fork for local development:
 
    ```sh
-   mkvirtualenv ai_cr
-   cd ai_cr/
-   python setup.py develop
+   python -m venv .venv
+   pip install -e .
    ```
 
 4. Create a branch for local development:
@@ -68,10 +67,9 @@ Ready to contribute? Here's how to set up `ai_cr` for local development.
 5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox:
 
    ```sh
-   make lint
-   make test
-   # Or
-   make test-all
+   just qa
+   just testall
+   just coverage
    ```
 
    To get flake8 and tox, just pip install them into your virtualenv.

@@ -1,22 +1,14 @@
 #!/usr/bin/env python
 import pytest
+from typer.testing import CliRunner
+from ai_cr.cli import app
+
+runner = CliRunner()
 
 """Tests for `ai_cr` package."""
 
 # from ai_cr import ai_cr
-
-
-@pytest.fixture
-def response():
-    """Sample pytest fixture.
-
-    See more at: http://doc.pytest.org/en/latest/fixture.html
-    """
-    # import requests
-    # return requests.get('https://github.com/audreyfeldroy/cookiecutter-pypackage')
-
-
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+def test_ai_cr_help():
+    result = runner.invoke(app)
+    assert result.exit_code == 0
+    assert "Replace this message" in result.stdout

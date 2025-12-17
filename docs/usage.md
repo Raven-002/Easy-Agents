@@ -2,6 +2,6 @@
 
 To use ai-cr in a project:
 
-```python
-import ai_cr
+```shell
+ai_cr <target_branch> --print
 ```

@@ -1,17 +1,19 @@
 # ai-cr
 
-![PyPI version](https://img.shields.io/pypi/v/ai-cr.svg)
-[![Documentation Status](https://readthedocs.org/projects/ai-cr/badge/?version=latest)](https://ai-cr.readthedocs.io/en/latest/?version=latest)
+[//]: # (![PyPI version]&#40;https://img.shields.io/pypi/v/ai-cr.svg&#41;)
+[//]: # ([![Documentation Status]&#40;https://readthedocs.org/projects/ai-cr/badge/?version=latest&#41;]&#40;https://ai-cr.readthedocs.io/en/latest/?version=latest&#41;)
 
-Python Boilerplate contains all the boilerplate you need to create a Python package.
+CR AI agent.
 
-* PyPI package: https://pypi.org/project/ai-cr/
+[//]: # (* PyPI package: https://pypi.org/project/ai-cr/)
 * Free software: MIT License
-* Documentation: https://ai-cr.readthedocs.io.
+
+[//]: # (* Documentation: https://ai-cr.readthedocs.io.)
 
 ## Features
 
-* TODO
+### Missing Features
+* Perform a full code review using AI.
 
 ## Credits
 

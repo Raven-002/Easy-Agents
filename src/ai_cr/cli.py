@@ -3,7 +3,7 @@
 import typer
 from rich.console import Console
 
-from ai_cr import utils
+from . import utils
 
 app = typer.Typer()
 console = Console()
