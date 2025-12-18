@@ -25,6 +25,7 @@ classifiers = [
 ]
 license = "MIT"
 dependencies = [
+  "gitpython>=3.1.45",
   "ollama>=0.6.1",
   "typer",
 ]

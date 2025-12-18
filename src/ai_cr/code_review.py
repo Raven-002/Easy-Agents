@@ -1,11 +1,12 @@
 """Main module."""
+
 import asyncio
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.markdown import Markdown
+from rich.panel import Panel
 
 from ai_cr.utils.gitlab_utils import GitlabMergeRequestApi
 
@@ -77,5 +78,6 @@ class CodeReview:
             comment.print_comment(console)
 
     async def submit_comments_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
-        await asyncio.gather(*(comment.submit_to_gitlab(gitlab_mr_api) for comment in self.comments),
-                             return_exceptions=True)
+        await asyncio.gather(
+            *(comment.submit_to_gitlab(gitlab_mr_api) for comment in self.comments), return_exceptions=True
+        )

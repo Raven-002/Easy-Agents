@@ -1,1 +1,1 @@
-from .cr_generator import generate_code_review
+from .cr_generator import generate_code_review as generate_code_review
