@@ -2,13 +2,14 @@ from abc import ABC, abstractmethod
 
 from ollama import Client
 
-from ..logging_utils import dlog, vlog
+from ..logging_utils import dlog, status, vlog
 
 
 class AiRunner(ABC):
     def run(self, prompt: str) -> str:
         vlog(f"Calling AI model with prompt: {prompt}")
-        answer = self._run(prompt)
+        with status("Running AI model… Waiting for response"):
+            answer = self._run(prompt)
         dlog(f"AI model response: {answer}")
         return answer
 
