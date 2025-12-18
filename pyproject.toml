@@ -25,7 +25,8 @@ classifiers = [
 ]
 license = "MIT"
 dependencies = [
-  "typer"
+  "ollama>=0.6.1",
+  "typer",
 ]
 requires-python = ">= 3.10"
 
