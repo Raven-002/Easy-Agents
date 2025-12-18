@@ -1,5 +1,5 @@
 """Main module."""
-
+import asyncio
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
@@ -9,6 +9,7 @@ from rich.markdown import Markdown
 
 from .gitlab_utils import GitlabMergeRequestApi
 
+
 class CodeReviewAbstractComment(ABC):
     @abstractmethod
     def print_comment(self, console: Console):
@@ -17,6 +18,7 @@ class CodeReviewAbstractComment(ABC):
     @abstractmethod
     def submit_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
         raise NotImplementedError
+
 
 @dataclass
 class CodeReviewGeneralComment(CodeReviewAbstractComment):
@@ -28,6 +30,7 @@ class CodeReviewGeneralComment(CodeReviewAbstractComment):
     def submit_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
         gitlab_mr_api.create_merge_request_comment(self.comment)
 
+
 @dataclass
 class CodeReviewGeneralThread(CodeReviewAbstractComment):
     comment: str
@@ -37,6 +40,7 @@ class CodeReviewGeneralThread(CodeReviewAbstractComment):
 
     def submit_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
         gitlab_mr_api.create_merge_request_thread(self.comment)
+
 
 @dataclass
 class CodeReviewFileThread(CodeReviewAbstractComment):
@@ -48,6 +52,7 @@ class CodeReviewFileThread(CodeReviewAbstractComment):
 
     def submit_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
         gitlab_mr_api.create_merge_request_file_thread(self.filename, self.comment)
+
 
 @dataclass
 class CodeReviewThread(CodeReviewAbstractComment):
@@ -61,6 +66,7 @@ class CodeReviewThread(CodeReviewAbstractComment):
     def submit_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
         gitlab_mr_api.create_merge_request_line_thread(self.filename, self.line_number, self.comment)
 
+
 @dataclass
 class CodeReview:
     reviewer: str
@@ -70,6 +76,6 @@ class CodeReview:
         for comment in self.comments:
             comment.print_comment(console)
 
-    def submit_comments_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
-        for comment in self.comments:
-            comment.submit_to_gitlab(gitlab_mr_api)
+    async def submit_comments_to_gitlab(self, gitlab_mr_api: GitlabMergeRequestApi):
+        await asyncio.gather(*(comment.submit_to_gitlab(gitlab_mr_api) for comment in self.comments),
+                             return_exceptions=True)
