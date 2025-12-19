@@ -1,6 +1,6 @@
-# This workflow run tests on the code
+# This workflow run QA checks on the code
 
-name: Test Python application
+name: Run qa on the code
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  testall:
+  qa:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,4 +20,4 @@ jobs:
       - uses: extractions/setup-just@v3
       - uses: actions/checkout@v4
       - name: Run tests
-        run: just testall
+        run: just qa

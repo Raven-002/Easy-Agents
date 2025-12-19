@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
 
 from ollama import Client
-from rich.console import Console
+
+from ..logging_utils import dlog, status, vlog
 
 
 class AiRunner(ABC):
     def run(self, prompt: str) -> str:
-        Console().print(f"Calling AI model with prompt: {prompt}")
-        answer = self._run(prompt)
-        Console().print(f"AI model response: {answer}")
+        vlog(f"Calling AI model with prompt: {prompt}")
+        with status("Running AI model… Waiting for response"):
+            answer = self._run(prompt)
+        dlog(f"AI model response: {answer}")
         return answer
 
     @classmethod
