@@ -1,6 +1,10 @@
 # Justfile for ai-cr
 
 MAIN_PY_VER := "3.14"
+QA_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
+TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
+BUILD_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
+MAIN_ENV := 'UV_PROJECT_ENVIRONMENT=".venv"'
 
 # Show available commands
 list:
@@ -8,44 +12,48 @@ list:
 
 # Run all the formatting, linting, and testing commands
 qa:
-    UV_PROJECT_ENVIRONMENT=".venv_qa" uv run --python={{MAIN_PY_VER}} --extra dev ruff format .
-    UV_PROJECT_ENVIRONMENT=".venv_qa" uv run --python={{MAIN_PY_VER}} --extra dev ruff check . --fix
-    UV_PROJECT_ENVIRONMENT=".venv_qa" uv run --python={{MAIN_PY_VER}} --extra dev ruff check --select I --fix .
-    UV_PROJECT_ENVIRONMENT=".venv_qa" uv run --python={{MAIN_PY_VER}} --extra dev ty check .
-    UV_PROJECT_ENVIRONMENT=".venv_qa" uv run --python={{MAIN_PY_VER}} --extra dev pytest .
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev ruff format . --check
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev ruff check .
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev ty check .
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev basedpyright src tests
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev mypy .
+
+qa-fix:
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev ruff format .
+    {{QA_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev ruff check . --fix
 
 # Run all the tests for all the supported Python versions
 testall:
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python=3.10 --extra dev pytest
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python=3.11 --extra dev pytest
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python=3.12 --extra dev pytest
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python=3.13 --extra dev pytest
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python={{MAIN_PY_VER}} --extra dev pytest
+    {{TEST_ENV}} uv run --python=3.10 --extra dev pytest
+    {{TEST_ENV}} uv run --python=3.11 --extra dev pytest
+    {{TEST_ENV}} uv run --python=3.12 --extra dev pytest
+    {{TEST_ENV}} uv run --python=3.13 --extra dev pytest
+    {{TEST_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev pytest
 
 # Run all the tests, but allow for arguments to be passed
 test *ARGS:
     @echo "Running with arg: {{ARGS}}"
-    UV_PROJECT_ENVIRONMENT=".venv_tests"  uv run --python={{MAIN_PY_VER}} --extra dev pytest {{ARGS}}
+    {{TEST_ENV}}  uv run --python={{MAIN_PY_VER}} --extra dev pytest {{ARGS}}
 
 # Run all the tests, but on failure, drop into the debugger
 pdb *ARGS:
     @echo "Running with arg: {{ARGS}}"
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python={{MAIN_PY_VER}}  --extra dev pytest --pdb --maxfail=10 --pdbcls=IPython.terminal.debugger:TerminalPdb {{ARGS}}
+    {{TEST_ENV}} uv run --python={{MAIN_PY_VER}}  --extra dev pytest --pdb --maxfail=10 --pdbcls=IPython.terminal.debugger:TerminalPdb {{ARGS}}
 
 # Run coverage, and build to HTML
 coverage:
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python={{MAIN_PY_VER}} --extra dev coverage run -m pytest .
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python={{MAIN_PY_VER}} --extra dev coverage report -m
-    UV_PROJECT_ENVIRONMENT=".venv_tests" uv run --python={{MAIN_PY_VER}} --extra dev coverage html
+    {{TEST_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev coverage run -m pytest .
+    {{TEST_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev coverage report -m
+    {{TEST_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev coverage html
 
 # Build the project, useful for checking that packaging is correct
 build:
     rm -rf build
     rm -rf dist
-    UV_PROJECT_ENVIRONMENT=".venv_build" uv build
+    {{BUILD_ENV}} uv build
 
 setup_dev_venv:
-    UV_PROJECT_ENVIRONMENT=".venv" uv sync --python={{MAIN_PY_VER}} --extra dev
+    {{MAIN_ENV}} uv sync --python={{MAIN_PY_VER}} --extra dev
 
 VERSION := `grep -m1 '^version' pyproject.toml | sed -E 's/version = "(.*)"/\1/'`
 

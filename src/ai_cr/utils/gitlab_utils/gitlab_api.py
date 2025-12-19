@@ -1,12 +1,12 @@
 class GitlabMergeRequestApi:
-    async def create_merge_request_comment(self, comment: str):
+    async def create_merge_request_comment(self, comment: str) -> None:
         pass
 
-    async def create_merge_request_thread(self, comment: str):
+    async def create_merge_request_thread(self, comment: str) -> None:
         pass
 
-    async def create_merge_request_file_thread(self, filename: str, comment: str):
+    async def create_merge_request_file_thread(self, filename: str, comment: str) -> None:
         pass
 
-    async def create_merge_request_line_thread(self, filename: str, line_number: int, comment: str):
+    async def create_merge_request_line_thread(self, filename: str, line_number: int, comment: str) -> None:
         pass

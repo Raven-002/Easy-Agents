@@ -37,6 +37,8 @@ dev = [
     "pytest",  # testing
     "ruff",  # linting
     "ty", # checking types
+    "mypy", # Another type checker
+    "basedpyright", # Another type checker/linter
     "ipdb", # debugging
 ]
 
@@ -64,6 +66,21 @@ select = [
     "I",   # isort
     "B",   # flake8-bugbear
     "UP",  # pyupgrade
+]
+
+[tool.mypy]
+strict = true
+exclude = "build|dist|.venv.*|__pycache__"
+
+[tool.basedpyright]
+# Strict type checking
+typeCheckingMode = "strict"
+# Exclude build/dist/venv artifacts
+exclude = [
+    "build",
+    "dist",
+    ".venv*",
+    "**/__pycache__"
 ]
 
 [tool.uv]
