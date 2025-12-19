@@ -11,7 +11,7 @@ class JobRequest(BaseModel):
     task_description: str
     expected_output_description: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.job_type not in jobs.keys():
             raise ValueError(f"Job type {self.job_type} not found.")
 

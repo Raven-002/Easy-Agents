@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-from git import DiffIndex, Repo
+from git import Diff, DiffIndex, Repo
 
 HUNK_RE = re.compile(r"^@@.*?@@", re.MULTILINE)
 
@@ -28,12 +28,13 @@ def git_diff(target_branch: str) -> list[DiffFile]:
     Includes patch text for all files, including empty diffs.
     """
     repo = Repo()
-    diff_index: DiffIndex = repo.index.diff(target_branch, create_patch=True)
+    diff_index: DiffIndex[Diff] = repo.index.diff(target_branch, create_patch=True)
     diff_files: list[DiffFile] = []
 
     for diff in diff_index:
         patch_text = diff.diff.decode("utf-8", errors="ignore") if diff.diff else ""  # type: ignore
-        hunks = []
+        assert isinstance(patch_text, str)
+        hunks: list[DiffHunk] = []
         for m in HUNK_RE.finditer(patch_text):
             # Find the start of the hunk header
             start = m.start()

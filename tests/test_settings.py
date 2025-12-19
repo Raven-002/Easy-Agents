@@ -5,14 +5,13 @@ from pytest import fixture, raises
 
 from ai_cr.settings.settings import (
     AiModel,
-    AiRunnerExpertise,
-    AiRunnerType,
     Settings,
     get_settings,
     init_settings,
     load_settings_from_yaml,
     reset_settings,
 )
+from ai_cr.utils.ai_utils.ai_runner import AiRunnerExpertise, AiRunnerType
 
 """Tests for the settings module."""
 
@@ -28,6 +27,8 @@ def default_settings() -> Settings:
             )
         },
         orchestrator_model="qwen3",
+        code_analysis_model="qwen3",
+        code_review_model="qwen3",
     )
 
 
@@ -45,7 +46,7 @@ class TestSettings:
             )
 
     def test_ai_model_sanity(self):
-        AiModel(expertise=[AiRunnerExpertise.CODE_UNDERSTANDING], runner_type=AiRunnerType.LOCAL_OLLAMA)
+        AiModel(expertise=[AiRunnerExpertise.CODE_UNDERSTANDING], runner_type=AiRunnerType.LOCAL_OLLAMA, extra_args={})
 
     def test_settings_missing_orchestrator_model(self):
         with raises(ValueError):
@@ -58,6 +59,8 @@ class TestSettings:
                     )
                 },
                 orchestrator_model="glm",
+                code_analysis_model="qwen3",
+                code_review_model="qwen3",
             )
 
     def test_settings_orchestrator_missing_expertise(self):
@@ -71,6 +74,8 @@ class TestSettings:
                     )
                 },
                 orchestrator_model="qwen3",
+                code_analysis_model="qwen3",
+                code_review_model="qwen3",
             )
 
     def test_settings_empty_model_name(self):
@@ -84,6 +89,8 @@ class TestSettings:
                     )
                 },
                 orchestrator_model="",
+                code_analysis_model="",
+                code_review_model="",
             )
 
     def test_get_settings_uninitialized(self):

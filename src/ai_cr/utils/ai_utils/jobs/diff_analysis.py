@@ -1,6 +1,7 @@
 from ...common import RecursiveStrDict
 from ..ai_runner import AiRunner, AiRunnerExpertise
 from ..common_ai_utils import build_system_prompt
+from ..tools.base_tool import BaseTool
 from ..tools.grep import GrepTool
 from .base_job import BaseJob, CommonJobParams
 
@@ -38,7 +39,7 @@ class DiffAnalysisJob(BaseJob):
         return extra_details_description
 
     def run(self, ai_runner: AiRunner, common_params: CommonJobParams, extra_details: RecursiveStrDict) -> str:
-        tools = [GrepTool()]
+        tools: list[BaseTool] = [GrepTool()]
         system_prompt = build_system_prompt(identity_details=identity_details, available_tools=tools)
         output = ai_runner.run(prompt=prompt.format(diff_blocks=str(common_params.diff)), system_prompt=system_prompt)
         return output

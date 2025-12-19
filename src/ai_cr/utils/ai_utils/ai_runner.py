@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Any
 
 from ollama import Client
 from pydantic import BeforeValidator
@@ -18,7 +18,7 @@ class AiRunnerType(Enum):
     LOCAL_OLLAMA = "local_ollama"
 
 
-def parse_ai_expertise(v):
+def parse_ai_expertise(v: Any) -> AiRunnerExpertise:
     if isinstance(v, AiRunnerExpertise):
         return v
     if isinstance(v, str):
@@ -29,7 +29,7 @@ def parse_ai_expertise(v):
     raise TypeError("AiRunnerExpertise must be str or AiRunnerExpertise")
 
 
-def parse_ai_runner_type(v):
+def parse_ai_runner_type(v: Any) -> AiRunnerType:
     if isinstance(v, AiRunnerType):
         return v
     if isinstance(v, str):
