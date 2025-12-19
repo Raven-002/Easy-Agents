@@ -1,0 +1,12 @@
+models:
+  qwen3:
+    expertise:
+      - orchestration
+      - code_understanding
+      - code_review
+    runner_type: local_ollama
+    extra_args:
+      model: qwen3:8b
+orchestrator_model: qwen3
+code_analysis_model: qwen3
+code_review_model: qwen3

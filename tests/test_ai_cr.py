@@ -8,7 +8,6 @@ runner = CliRunner()
 """Tests for `ai_cr` package."""
 
 
-# from ai_cr import ai_cr
 def test_ai_cr_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0, result.stderr

@@ -3,6 +3,8 @@
 import typer
 from rich.console import Console
 
+from ai_cr.settings.settings import load_settings_from_yaml
+
 from .cr_generator import generate_code_review
 from .utils.logging_utils import configure_logging, dlog, status
 
@@ -23,9 +25,13 @@ def main(
         "--spinner/--no-spinner",
         help="Show a spinner while waiting for the AI model response (default: auto, only in TTY).",
     ),
+    settings_file: str = typer.Option(".ai_cr_config.yml", envvar="AI_CR_SETTINGS_FILE", help="Path to settings file."),
 ) -> None:
     """Perform code review for a given branch."""
     configure_logging(level=2 if debug else 1 if verbose else 0, console=console, spinner=spinner)
+
+    with open(settings_file) as f:
+        load_settings_from_yaml(f.read())
 
     dlog(
         f"ai_cr {target_branch}{' --skip-print' if skip_print else ''} "

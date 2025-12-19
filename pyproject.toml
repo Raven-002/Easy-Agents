@@ -27,6 +27,7 @@ license = "MIT"
 dependencies = [
   "gitpython>=3.1.45",
   "ollama>=0.6.1",
+  "pyyaml>=6.0.3",
   "typer",
 ]
 requires-python = ">= 3.10"
@@ -71,10 +72,20 @@ select = [
 [tool.mypy]
 strict = true
 exclude = "build|dist|.venv.*|__pycache__"
+disable_error_code = [
+  "import-untyped"
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = [
+  "no-untyped-def"
+]
 
 [tool.basedpyright]
 # Strict type checking
 typeCheckingMode = "strict"
+reportMissingTypeStubs=false
 # Exclude build/dist/venv artifacts
 exclude = [
     "build",
