@@ -11,7 +11,7 @@ from ai_cr.settings.settings import (
     load_settings_from_yaml,
     reset_settings,
 )
-from ai_cr.utils.ai_utils.ai_runner import AiRunnerExpertise, AiRunnerType
+from ai_cr.utils.ai_utils import AiRunnerType
 
 """Tests for the settings module."""
 
@@ -21,7 +21,6 @@ def default_settings() -> Settings:
     return Settings(
         models={
             "qwen3": AiModel(
-                expertise=[AiRunnerExpertise.ORCHESTRATION],
                 runner_type=AiRunnerType.LOCAL_OLLAMA,
                 extra_args={"model": "qwen3:8b"},
             )
@@ -40,20 +39,18 @@ class TestSettings:
     def test_ai_model_no_expertise(self):
         with raises(ValueError):
             AiModel(
-                expertise=[],
                 runner_type=AiRunnerType.LOCAL_OLLAMA,
                 extra_args={"model": "qwen3:8b"},
             )
 
     def test_ai_model_sanity(self):
-        AiModel(expertise=[AiRunnerExpertise.CODE_UNDERSTANDING], runner_type=AiRunnerType.LOCAL_OLLAMA, extra_args={})
+        AiModel(runner_type=AiRunnerType.LOCAL_OLLAMA, extra_args={})
 
     def test_settings_missing_orchestrator_model(self):
         with raises(ValueError):
             Settings(
                 models={
                     "qwen3": AiModel(
-                        expertise=[AiRunnerExpertise.ORCHESTRATION, AiRunnerExpertise.CODE_REVIEW],
                         runner_type=AiRunnerType.LOCAL_OLLAMA,
                         extra_args={"model": "qwen3:8b"},
                     )
@@ -63,27 +60,11 @@ class TestSettings:
                 code_review_model="qwen3",
             )
 
-    def test_settings_orchestrator_missing_expertise(self):
-        with raises(ValueError):
-            Settings(
-                models={
-                    "qwen3": AiModel(
-                        expertise=[AiRunnerExpertise.CODE_REVIEW],
-                        runner_type=AiRunnerType.LOCAL_OLLAMA,
-                        extra_args={"model": "qwen3:8b"},
-                    )
-                },
-                orchestrator_model="qwen3",
-                code_analysis_model="qwen3",
-                code_review_model="qwen3",
-            )
-
     def test_settings_empty_model_name(self):
         with raises(ValueError):
             Settings(
                 models={
                     "": AiModel(
-                        expertise=[AiRunnerExpertise.CODE_REVIEW],
                         runner_type=AiRunnerType.LOCAL_OLLAMA,
                         extra_args={"model": "qwen3:8b"},
                     )
@@ -119,4 +100,3 @@ orchestrator_model: qwen3
         assert settings.orchestrator_model == "qwen3"
         assert settings.models["qwen3"].runner_type == AiRunnerType.LOCAL_OLLAMA
         assert settings.models["qwen3"].extra_args == {"model": "qwen3:8b"}
-        assert settings.models["qwen3"].expertise == [AiRunnerExpertise.ORCHESTRATION, AiRunnerExpertise.CODE_REVIEW]

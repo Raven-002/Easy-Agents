@@ -62,3 +62,20 @@ def git_diff(target_branch: str) -> list[DiffFile]:
         diff_files.append(diff_file)
 
     return diff_files
+
+
+def summerize_diff_files(diff: list[DiffFile]) -> str:
+    diff_str: str = ""
+    for file in diff:
+        if file.change_type == "D":
+            diff_str += f"- {file.path_b} Deleted\n"
+        elif file.change_type == "A":
+            diff_str += f"- {file.path_a} Added\n"
+        else:
+            if file.permissions_a != file.permissions_b:
+                diff_str += f"- {file.path_b}:{file.permissions_b} --> {file.path_a}:{file.permissions_a}\n"
+            elif file.path_a != file.path_b:
+                diff_str += f"- {file.path_b} --> {file.path_a}\n"
+            else:
+                diff_str += f"- {file.path_a} Modified\n"
+    return diff_str

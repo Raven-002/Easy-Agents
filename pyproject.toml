@@ -1,36 +1,47 @@
+# --- Build System -------------------------------------------------------------
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ai_cr = ["templates/**/*.j2"]
+
+# --- Project ------------------------------------------------------------------
 [project]
 name = "ai-cr"
 version = "0.1.0"
+dependencies = [
+  "gitpython>=3.1.45",
+  "ollama>=0.6.1",
+  "pyyaml>=6.0.3",
+  "typer",
+  "jinja2",
+  "litellm>=1.80.10",
+  "numpydoc>=1.10.0",
+]
+requires-python = ">= 3.12"
 description = "CR ai agent"
 readme = "README.md"
+license = "MIT"
 authors = [
   {name = "Raven", email = "152022920+Raven-002@users.noreply.github.com"}
 ]
 maintainers = [
   {name = "Raven", email = "152022920+Raven-002@users.noreply.github.com"}
 ]
-# https://pypi.org/classifiers/
 classifiers = [
   "Development Status :: 1 - Planning",
   "Environment :: Console",
-
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Quality Assurance",
-
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
 ]
-license = "MIT"
-dependencies = [
-  "gitpython>=3.1.45",
-  "ollama>=0.6.1",
-  "pyyaml>=6.0.3",
-  "typer",
-]
-requires-python = ">= 3.10"
 
 [project.optional-dependencies]
 dev = [
@@ -44,13 +55,15 @@ dev = [
 ]
 
 [project.urls]
+homepage = "https://github.com/Raven-002/ai_cr"
 bugs = "https://github.com/Raven-002/ai_cr/issues"
 changelog = "https://github.com/Raven-002/ai_cr/blob/master/changelog.md"
-homepage = "https://github.com/Raven-002/ai_cr"
 
 [project.scripts]
 ai_cr = "ai_cr.cli:app"
 
+
+# --- Tools --------------------------------------------------------------------
 [tool.ty]
 # All rules are enabled as "error" by default; no need to specify unless overriding.
 # Example override: relax a rule for the entire project (uncomment if needed).

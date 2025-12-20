@@ -1,3 +1,1 @@
-from typing import TypeAlias, Union
-
-RecursiveStrDict: TypeAlias = dict[str, Union[str, "RecursiveStrDict"]]
+type JsonType = None | int | str | bool | list[JsonType] | dict[str, JsonType]

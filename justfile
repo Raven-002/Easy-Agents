@@ -1,5 +1,6 @@
 # Justfile for ai-cr
 
+MIN_PY_VER := "3.12"
 MAIN_PY_VER := "3.14"
 QA_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
 TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
@@ -24,10 +25,7 @@ qa-fix:
 
 # Run all the tests for all the supported Python versions
 testall:
-    {{TEST_ENV}} uv run --python=3.10 --extra dev pytest
-    {{TEST_ENV}} uv run --python=3.11 --extra dev pytest
-    {{TEST_ENV}} uv run --python=3.12 --extra dev pytest
-    {{TEST_ENV}} uv run --python=3.13 --extra dev pytest
+    {{TEST_ENV}} uv run --python={{MIN_PY_VER}} --extra dev pytest
     {{TEST_ENV}} uv run --python={{MAIN_PY_VER}} --extra dev pytest
 
 # Run all the tests, but allow for arguments to be passed

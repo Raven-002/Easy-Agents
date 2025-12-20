@@ -1,27 +1,20 @@
 import yaml
 from pydantic import BaseModel
 
-from ..utils.ai_utils.ai_runner import (
-    AiRunner,
-    AiRunnerExpertise,
-    AiRunnerExtraArgs,
-    ParsableAiExpertise,
-    ParsableAiRunnerType,
-    create_ai_runner,
-)
+from ..utils.ai_utils import AiRunner, AiRunnerType, create_runner
+from ..utils.common import JsonType
 
 
 class AiModel(BaseModel):
-    runner_type: ParsableAiRunnerType
-    expertise: list[ParsableAiExpertise]
-    extra_args: AiRunnerExtraArgs
+    runner_type: AiRunnerType
+    extra_args: JsonType
 
     def __post_init__(self) -> None:
         if not self.expertise:
             raise ValueError("Model must have at least one expertise.")
 
     def create_runner(self) -> AiRunner:
-        return create_ai_runner(runner_type=self.runner_type, expertise=self.expertise, extra_args=self.extra_args)
+        return create_runner(self.runner_type, self.extra_args)
 
 
 class Settings(BaseModel):
@@ -38,22 +31,11 @@ class Settings(BaseModel):
         if self.orchestrator_model not in self.models:
             raise ValueError(f"Orchestrator model {self.orchestrator_model} not found in models.")
 
-        if AiRunnerExpertise.ORCHESTRATION not in self.models[self.orchestrator_model].expertise:
-            raise ValueError(f"Orchestrator model {self.orchestrator_model} is missing the orchestration expertise.")
-
         if self.code_analysis_model not in self.models:
             raise ValueError(f"Code analysis model {self.code_analysis_model} not found in models.")
 
-        if AiRunnerExpertise.CODE_UNDERSTANDING not in self.models[self.code_analysis_model].expertise:
-            raise ValueError(
-                f"Code analysis model {self.code_analysis_model} is missing the code understanding expertise."
-            )
-
         if self.code_review_model not in self.models:
             raise ValueError(f"Code review model {self.code_review_model} not found in models.")
-
-        if AiRunnerExpertise.CODE_REVIEW not in self.models[self.code_review_model].expertise:
-            raise ValueError(f"Code review model {self.code_review_model} is missing the code review expertise.")
 
     def create_orchestrator_runner(self) -> AiRunner:
         return self.models[self.orchestrator_model].create_runner()

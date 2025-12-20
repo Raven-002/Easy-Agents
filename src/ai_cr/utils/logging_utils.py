@@ -44,14 +44,14 @@ def is_debug() -> bool:
     return _verbosity_level >= _LEVEL_DEBUG
 
 
-def vlog(message: str) -> None:
+def vlog(message: str, markup: bool = True) -> None:
     if is_verbose():
-        _get_console().log(message)
+        _get_console().log(message, markup=markup)
 
 
-def dlog(message: str) -> None:
+def dlog(message: str, markup: bool = True) -> None:
     if is_debug():
-        _get_console().log(message)
+        _get_console().log(message, markup=markup)
 
 
 @contextmanager
