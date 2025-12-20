@@ -11,7 +11,6 @@ from ai_cr.settings.settings import (
     load_settings_from_yaml,
     reset_settings,
 )
-from ai_cr.utils.ai_utils import AiRunnerType
 
 """Tests for the settings module."""
 
@@ -21,7 +20,7 @@ def default_settings() -> Settings:
     return Settings(
         models={
             "qwen3": AiModel(
-                runner_type=AiRunnerType.LOCAL_OLLAMA,
+                runner_type="local_ollama",
                 extra_args={"model": "qwen3:8b"},
             )
         },
@@ -36,22 +35,15 @@ class TestSettings:
     def setup_method(_test_method: Any):
         reset_settings()
 
-    def test_ai_model_no_expertise(self):
-        with raises(ValueError):
-            AiModel(
-                runner_type=AiRunnerType.LOCAL_OLLAMA,
-                extra_args={"model": "qwen3:8b"},
-            )
-
     def test_ai_model_sanity(self):
-        AiModel(runner_type=AiRunnerType.LOCAL_OLLAMA, extra_args={})
+        AiModel(runner_type="local_ollama", extra_args={})
 
     def test_settings_missing_orchestrator_model(self):
         with raises(ValueError):
             Settings(
                 models={
                     "qwen3": AiModel(
-                        runner_type=AiRunnerType.LOCAL_OLLAMA,
+                        runner_type="local_ollama",
                         extra_args={"model": "qwen3:8b"},
                     )
                 },
@@ -65,7 +57,7 @@ class TestSettings:
             Settings(
                 models={
                     "": AiModel(
-                        runner_type=AiRunnerType.LOCAL_OLLAMA,
+                        runner_type="local_ollama",
                         extra_args={"model": "qwen3:8b"},
                     )
                 },
@@ -87,16 +79,15 @@ class TestSettings:
         yaml_content = """
 models:
     qwen3:
-        expertise:
-            - orchestration
-            - code_review
         runner_type: local_ollama
         extra_args:
             model: qwen3:8b
 orchestrator_model: qwen3
+code_analysis_model: qwen3
+code_review_model: qwen3
         """
         load_settings_from_yaml(yaml_content)
         settings = get_settings()
         assert settings.orchestrator_model == "qwen3"
-        assert settings.models["qwen3"].runner_type == AiRunnerType.LOCAL_OLLAMA
+        assert settings.models["qwen3"].runner_type == "local_ollama"
         assert settings.models["qwen3"].extra_args == {"model": "qwen3:8b"}

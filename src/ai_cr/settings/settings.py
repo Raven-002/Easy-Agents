@@ -1,3 +1,5 @@
+from typing import Any
+
 import yaml
 from pydantic import BaseModel
 
@@ -9,10 +11,6 @@ class AiModel(BaseModel):
     runner_type: AiRunnerType
     extra_args: JsonType
 
-    def __post_init__(self) -> None:
-        if not self.expertise:
-            raise ValueError("Model must have at least one expertise.")
-
     def create_runner(self) -> AiRunner:
         return create_runner(self.runner_type, self.extra_args)
 
@@ -23,7 +21,7 @@ class Settings(BaseModel):
     code_analysis_model: str
     code_review_model: str
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, _context: Any) -> None:
         for model_id in self.models.keys():
             if model_id == "":
                 raise ValueError("Model name cannot be empty.")

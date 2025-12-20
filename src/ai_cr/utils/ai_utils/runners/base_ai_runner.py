@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import litellm
+from litellm.types.utils import Message, ModelResponseStream
 
 from ai_cr.utils.ai_utils.tools import AbstractTool
 from ai_cr.utils.ai_utils.types.context import Context
@@ -28,7 +29,7 @@ class AiRunner:
         self.api_base = api_base
 
     @classmethod
-    def create_runner(cls, runner_params) -> "AiRunner":
+    def create_runner(cls, runner_params: Any) -> "AiRunner":
         return cls(**runner_params)
 
     def generate_response(
@@ -42,7 +43,7 @@ class AiRunner:
     ) -> AiResponse:
         # Prepare the message history
         messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(context.messages)
+        messages.extend([m for m in context.messages])  # type: ignore
         messages.append({"role": "user", "content": prompt})
 
         # Convert Python functions to JSON schemas for LiteLLM
@@ -54,19 +55,20 @@ class AiRunner:
         )
 
         # Start streaming completion
-        response_stream = litellm.completion(
+        response_stream = litellm.completion(  # type: ignore
             model=self.model_name,
             messages=messages,
             tools=tools_dicts,
             api_key=self.api_key,
             api_base=self.api_base,
             stream=True,
-            response_format=response_format,
+            response_format=response_format,  # type: ignore
             extra_body={"enable_thinking": thinking},
         )
 
-        chunks = []
+        chunks: list[ModelResponseStream] = []
         for chunk in response_stream:
+            assert isinstance(chunk, ModelResponseStream)
             chunks.append(chunk)
         #     # Live stream content to the terminal
         #     content = chunk.choices[0].delta.content
@@ -75,8 +77,10 @@ class AiRunner:
         # print()
 
         # Reconstruct the full message from chunks
-        full_response = litellm.stream_chunk_builder(chunks, messages=messages)
-        message_obj = full_response.choices[0].message
+        full_response = litellm.stream_chunk_builder(chunks, messages=messages)  # type: ignore
+        assert isinstance(full_response, litellm.ModelResponse)
+        message_obj: Message = full_response.choices[0].message  # type: ignore
+        assert isinstance(message_obj, Message)
 
         dlog(f"AI response:\n - Content: {message_obj.content}\n\n - ToolCalls: {message_obj.tool_calls}", markup=False)
 

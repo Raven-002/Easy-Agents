@@ -86,7 +86,8 @@ select = [
 strict = true
 exclude = "build|dist|.venv.*|__pycache__"
 disable_error_code = [
-  "import-untyped"
+  "import-untyped",
+  "unused-ignore"
 ]
 
 [[tool.mypy.overrides]]

@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pydantic import BaseModel
+
+from ai_cr.utils.common import JsonType
 
 
 class AbstractTool(ABC):
@@ -9,14 +12,14 @@ class AbstractTool(ABC):
     and implement a `run` method.
     """
 
-    class Parameters(BaseModel):
-        """Define the parameters schema in subclasses."""
-
-        place_holder: str
+    @classmethod
+    @abstractmethod
+    def get_params_type(cls) -> type[BaseModel]:
+        raise NotImplementedError
 
     @classmethod
-    def run(cls, **kwargs) -> str:
-        parameters = cls.Parameters(**kwargs)
+    def run(cls, **kwargs: Any) -> str:
+        parameters = cls.get_params_type()(**kwargs)
         return cls._run(parameters)
 
     @classmethod
@@ -35,6 +38,10 @@ class AbstractTool(ABC):
         return cls.__name__
 
     @classmethod
-    def schema(cls):
+    def schema(cls) -> JsonType:
         """Return the JSON schema of the tool parameters for AI consumption."""
-        return {"name": cls.name(), "description": cls.description(), "parameters": cls.Parameters.model_json_schema()}
+        return {
+            "name": cls.name(),
+            "description": cls.description(),
+            "parameters": cls.get_params_type().model_json_schema(),
+        }

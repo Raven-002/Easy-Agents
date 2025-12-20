@@ -5,6 +5,7 @@ from pydantic import TypeAdapter
 
 from ai_cr.utils.ai_utils.types.context import Context
 
+from ...common import JsonType
 from .. import AiRunner
 from ..tools import AbstractTool
 
@@ -23,7 +24,7 @@ class AiTask[T]:
         self,
         prompt: str,
         output_schema: type[T],
-        tools: list[type[AbstractTool]] = None,
+        tools: list[type[AbstractTool]] | None = None,
         system_prompt: str = "You are a specialized agent. Use tools if needed, then respond with the final data.",
     ):
         self.prompt = prompt
@@ -32,7 +33,7 @@ class AiTask[T]:
         self.system_prompt = system_prompt
         self._adapter = TypeAdapter(output_schema)
 
-    def _get_response_schema(self) -> dict:
+    def _get_response_schema(self) -> JsonType:
         """Generates the OpenAI-compatible JSON schema from the dataclass."""
         return {
             "type": "json_schema",
@@ -44,7 +45,7 @@ class AiTask[T]:
         }
 
     @staticmethod
-    def _get_planning_schema() -> dict:
+    def _get_planning_schema() -> JsonType:
         return {
             "type": "json_schema",
             "json_schema": {
@@ -131,13 +132,16 @@ class AiTask[T]:
                     if response.tool_calls:
                         for call in response.tool_calls:
                             tool = tool_map.get(call.function.name)
-                            if tool:
-                                args = json.loads(call.function.arguments)
-                                result = tool.run(**args)
-                                context.add_tool_message(content=str(result), tool_call_id=call.id)
+                            if not tool:
+                                raise ValueError(f"Tool {call.function.name} not found.")
+                            args = json.loads(call.function.arguments)
+                            result = tool.run(**args)
+                            context.add_tool_message(content=str(result), tool_call_id=call.id)
                     else:
                         tool_call = json.loads(response.content)
                         tool = tool_map.get(tool_call["name"])
+                        if not tool:
+                            raise ValueError(f"Tool {tool_call['name']} not found.")
                         args = tool_call["arguments"]
                         result = tool.run(**args)
                         context.add_tool_message(content=str(result), tool_call_id="last_tool_call")
@@ -164,5 +168,5 @@ class AiTask[T]:
                     )
                     state = TaskState.FINISHED
                     return self._adapter.validate_python(json.loads(response.content))
-                case TaskState.ERROR | TaskState.FINISHED:
-                    raise ValueError("AI failed to plan the task.")
+                case _:  # type: ignore
+                    raise ValueError(f"Invalid state: {state}")

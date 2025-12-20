@@ -20,11 +20,15 @@ class GrepTool(AbstractTool):
         context_after: int = Field(0, description="Number of lines of trailing context to include after each match.")
 
     @classmethod
+    def get_params_type(cls) -> type[BaseModel]:
+        return cls.Parameters
+
+    @classmethod
     def description(cls) -> str:
         return "Search for regex matches in files or directories using grep."
 
     @classmethod
-    def _run(cls, params: Parameters) -> str:
+    def _run(cls, params: Parameters) -> str:  # type: ignore
         """Run grep with the provided parameters."""
         flags = ["-nH"]  # line numbers + filename
 

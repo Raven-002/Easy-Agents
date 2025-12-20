@@ -1,3 +1,5 @@
+from typing import Any
+
 from .base_ai_runner import AiRunner
 
 
@@ -8,5 +10,5 @@ class OpenAiRunner(AiRunner):
         super().__init__(model_name=model_name, api_base=api_base, api_key=api_key)
 
     @classmethod
-    def create_runner(cls, runner_params) -> "OpenAiRunner":
+    def create_runner(cls, runner_params: dict[str, Any]) -> "OpenAiRunner":
         return cls(**runner_params)

@@ -24,7 +24,7 @@ MessageType = UserMessage | AssistantMessage | ToolMessage
 
 
 class Context:
-    def __init__(self):
+    def __init__(self) -> None:
         # Explicitly type the list to handle different dictionary shapes
         self._messages: list[MessageType] = []
 

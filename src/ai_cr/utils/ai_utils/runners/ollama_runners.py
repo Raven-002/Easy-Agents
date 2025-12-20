@@ -1,3 +1,5 @@
+from typing import Any
+
 from .base_ai_runner import AiRunner
 
 
@@ -10,5 +12,5 @@ class LocalOllamaRunner(AiRunner):
         super().__init__(model_name=formatted_model, api_base="http://localhost:11434")
 
     @classmethod
-    def create_runner(cls, runner_params) -> "LocalOllamaRunner":
+    def create_runner(cls, runner_params: dict[str, Any]) -> "LocalOllamaRunner":
         return cls(**runner_params)
