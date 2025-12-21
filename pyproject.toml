@@ -10,7 +10,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-ai_cr = ["templates/**/*.j2"]
+easy_agents = ["templates/**/*.j2"]
 
 # --- Project ------------------------------------------------------------------
 [project]
@@ -48,7 +48,7 @@ dev = [
     "coverage",  # testing
     "pytest",  # testing
     "ruff",  # linting
-    "ty", # checking types
+    "ty", # checking Context
     "mypy", # Another type checker
     "basedpyright", # Another type checker/linter
     "ipdb", # debugging
@@ -60,7 +60,7 @@ bugs = "https://github.com/Raven-002/ai_cr/issues"
 changelog = "https://github.com/Raven-002/ai_cr/blob/master/changelog.md"
 
 [project.scripts]
-ai_cr = "ai_cr.cli:app"
+easy_agents = "easy_agents.cli:app"
 
 
 # --- Tools --------------------------------------------------------------------

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from typer.testing import CliRunner
 
-from ai_cr.cli import app
+from easy_agents.cli import app
 
 runner = CliRunner()
 
-"""Tests for `ai_cr` package."""
+"""Tests for `easy_agents` package."""
 
 
 def test_ai_cr_help() -> None:

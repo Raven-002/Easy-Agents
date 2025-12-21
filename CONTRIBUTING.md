@@ -46,7 +46,7 @@ Ready to contribute? Here's how to set up `ai_cr` for local development.
 2. Clone your fork locally:
 
    ```sh
-   git clone git@github.com:your_name_here/ai_cr.git
+   git clone git@github.com:your_name_here/easy_agents.git
    ```
 
 3. Install your local copy into a virtualenv. This is how you set up your fork for local development:

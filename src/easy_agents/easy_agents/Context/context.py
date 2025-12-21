@@ -1,7 +1,7 @@
 from typing import Any, TypedDict
 
 
-# Define the shapes of the different message types
+# Define the shapes of the different message Context
 class UserMessage(TypedDict):
     role: str  # "user"
     content: str

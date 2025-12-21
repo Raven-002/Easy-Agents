@@ -4,10 +4,10 @@ from typing import Any
 import litellm
 from litellm.types.utils import Message, ModelResponseStream
 
-from ai_cr.utils.ai_utils.tools import AbstractTool
-from ai_cr.utils.ai_utils.types.context import Context
-from ai_cr.utils.common import JsonType
-from ai_cr.utils.logging_utils import dlog
+from easy_agents.easy_agents.Context.context import Context
+from easy_agents.easy_agents.tools import AbstractTool
+from easy_agents.utils.logging_utils import dlog
+from easy_agents.utils.types.json_dict import JsonType
 
 
 @dataclass

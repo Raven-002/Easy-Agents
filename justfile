@@ -3,8 +3,8 @@
 MIN_PY_VER := "3.12"
 MAIN_PY_VER := "3.14"
 QA_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
-TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
-BUILD_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
+TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_test"'
+BUILD_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_build"'
 MAIN_ENV := 'UV_PROJECT_ENVIRONMENT=".venv"'
 
 # Show available commands
@@ -67,9 +67,11 @@ version:
 
 # remove all build, test, coverage and Python artifacts
 clean:
-	clean-build
-	clean-pyc
-	clean-test
+	just clean-build
+	just clean-pyc
+	just clean-test
+	rm -fr .venv_qa
+	rm -fr .venv
 
 # remove build artifacts
 clean-build:
@@ -78,6 +80,7 @@ clean-build:
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
+	rm -fr .venv_build
 
 # remove Python file artifacts
 clean-pyc:
@@ -91,3 +94,4 @@ clean-test:
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
+	rm -fr .venv_test

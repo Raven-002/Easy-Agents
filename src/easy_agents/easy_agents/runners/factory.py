@@ -1,6 +1,6 @@
 from typing import Literal
 
-from ai_cr.utils.common import JsonType
+from easy_agents.utils.types.json_dict import JsonType
 
 from .base_ai_runner import AiRunner
 from .ollama_runners import LocalOllamaRunner

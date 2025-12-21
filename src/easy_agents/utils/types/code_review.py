@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from ai_cr.utils.gitlab_utils import GitlabMergeRequestApi
+from easy_agents.utils.gitlab_utils import GitlabMergeRequestApi
 
 
 class CodeReviewAbstractComment(ABC):

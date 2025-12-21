@@ -3,9 +3,9 @@ from enum import Enum
 
 from pydantic import TypeAdapter
 
-from ai_cr.utils.ai_utils.types.context import Context
+from easy_agents.easy_agents.Context.context import Context
+from easy_agents.utils.types.json_dict import JsonType
 
-from ...common import JsonType
 from .. import AiRunner
 from ..tools import AbstractTool
 
