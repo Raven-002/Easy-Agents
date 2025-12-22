@@ -3,7 +3,7 @@ from typing import Any
 from jinja2 import Environment, PackageLoader
 
 jinja_env = Environment(
-    loader=PackageLoader("easy_agents", "templates"),
+    loader=PackageLoader("ai_cr", "templates"),
 )
 
 

@@ -3,7 +3,7 @@ from typing import Any
 
 from pytest import fixture, raises
 
-from easy_agents.settings.settings import (
+from ai_cr.settings.settings import (
     AiModel,
     Settings,
     get_settings,

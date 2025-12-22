@@ -21,7 +21,7 @@ The source files for ai-cr can be downloaded from the [Github repo](https://gith
 You can either clone the public repository:
 
 ```sh
-git clone git://github.com/Raven-002/easy_agents
+git clone git://github.com/Raven-002/ai_cr
 ```
 
 Or download the [tarball](https://github.com/Raven-002/ai_cr/tarball/master):
@@ -33,6 +33,6 @@ curl -OJL https://github.com/Raven-002/ai_cr/tarball/master
 Once you have a copy of the source, you can install it with:
 
 ```sh
-cd easy_agents
+cd ai_cr
 uv pip install .
 ```

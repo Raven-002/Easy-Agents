@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from easy_agents.utils.types.json_dict import JsonType
+from ai_cr.utils.common import JsonType
 
 
 class AbstractTool(ABC):

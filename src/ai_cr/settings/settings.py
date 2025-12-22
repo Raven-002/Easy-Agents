@@ -3,8 +3,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-from easy_agents.easy_agents import AiRunner, AiRunnerType, create_runner
-from easy_agents.utils.types.json_dict import JsonType
+from ..utils.ai_utils import AiRunner, AiRunnerType, create_runner
+from ..utils.common import JsonType
 
 
 class AiModel(BaseModel):

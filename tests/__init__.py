@@ -1,1 +1,1 @@
-"""Unit test package for easy_agents."""
+"""Unit test package for ai_cr."""

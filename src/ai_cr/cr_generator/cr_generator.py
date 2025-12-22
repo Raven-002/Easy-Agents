@@ -2,11 +2,12 @@ from dataclasses import dataclass
 
 import pydantic
 
-from easy_agents.easy_agents import AiTask, Context, GrepTool
-from easy_agents.settings.settings import get_settings
-from easy_agents.templates.templates_loader import render_template
-from easy_agents.utils.git_utils.git_diff import git_diff, summerize_diff_files
-from easy_agents.utils.types.code_review import CodeReview, CodeReviewGeneralComment
+from ..code_review import CodeReview, CodeReviewGeneralComment
+from ..settings.settings import get_settings
+from ..utils.ai_utils import AiTask, Context
+from ..utils.ai_utils.tools import GrepTool
+from ..utils.git_utils.git_diff import git_diff, summerize_diff_files
+from ..utils.templates_loader import render_template
 
 
 @dataclass

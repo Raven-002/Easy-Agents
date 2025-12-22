@@ -3,5 +3,5 @@
 To use ai-cr in a project:
 
 ```shell
-easy_agents <target_branch> --print
+ai_cr <target_branch> --print
 ```
