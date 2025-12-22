@@ -17,13 +17,12 @@ ai_cr = ["templates/**/*.j2"]
 name = "ai-cr"
 version = "0.1.0"
 dependencies = [
-  "gitpython>=3.1.45",
-  "ollama>=0.6.1",
-  "pyyaml>=6.0.3",
+  "openai-agents",
+  "gitpython",
+  "pyyaml",
+  "rich",
   "typer",
   "jinja2",
-  "litellm>=1.80.10",
-  "numpydoc>=1.10.0",
 ]
 requires-python = ">= 3.12"
 description = "CR ai agent"
@@ -60,7 +59,7 @@ bugs = "https://github.com/Raven-002/ai_cr/issues"
 changelog = "https://github.com/Raven-002/ai_cr/blob/master/changelog.md"
 
 [project.scripts]
-ai_cr = "ai_cr.cli:app"
+ai_cr = "ai_cr.cli:cli_app"
 
 
 # --- Tools --------------------------------------------------------------------

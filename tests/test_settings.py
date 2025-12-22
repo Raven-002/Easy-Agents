@@ -18,15 +18,10 @@ from ai_cr.settings.settings import (
 @fixture
 def default_settings() -> Settings:
     return Settings(
-        models={
-            "qwen3": AiModel(
-                runner_type="local_ollama",
-                extra_args={"model": "qwen3:8b"},
-            )
-        },
-        orchestrator_model="qwen3",
-        code_analysis_model="qwen3",
-        code_review_model="qwen3",
+        models={"qwen3": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+        orchestrator_model_name="qwen3",
+        code_analysis_model_name="qwen3",
+        code_review_model_name="qwen3",
     )
 
 
@@ -36,34 +31,47 @@ class TestSettings:
         reset_settings()
 
     def test_ai_model_sanity(self):
-        AiModel(runner_type="local_ollama", extra_args={})
+        AiModel(model_name="qwen3:8b", api_base="http://localhost:11434/v1", api_key="ollama")
 
     def test_settings_missing_orchestrator_model(self):
         with raises(ValueError):
             Settings(
-                models={
-                    "qwen3": AiModel(
-                        runner_type="local_ollama",
-                        extra_args={"model": "qwen3:8b"},
-                    )
-                },
-                orchestrator_model="glm",
-                code_analysis_model="qwen3",
-                code_review_model="qwen3",
+                models={"qwen3": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+                orchestrator_model_name="glm",
+                code_analysis_model_name="qwen3",
+                code_review_model_name="qwen3",
             )
 
     def test_settings_empty_model_name(self):
         with raises(ValueError):
             Settings(
-                models={
-                    "": AiModel(
-                        runner_type="local_ollama",
-                        extra_args={"model": "qwen3:8b"},
-                    )
-                },
-                orchestrator_model="",
-                code_analysis_model="",
-                code_review_model="",
+                models={"": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+                orchestrator_model_name="qwen3",
+                code_analysis_model_name="qwen3",
+                code_review_model_name="qwen3",
+            )
+
+    def test_settings_empty_model_name_for_category(self):
+        with raises(ValueError):
+            Settings(
+                models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+                orchestrator_model_name="",
+                code_analysis_model_name="qwen3",
+                code_review_model_name="qwen3",
+            )
+        with raises(ValueError):
+            Settings(
+                models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+                orchestrator_model_name="qwen3",
+                code_analysis_model_name="",
+                code_review_model_name="qwen3",
+            )
+        with raises(ValueError):
+            Settings(
+                models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
+                orchestrator_model_name="qwen3",
+                code_analysis_model_name="qwen3",
+                code_review_model_name="",
             )
 
     def test_get_settings_uninitialized(self):
@@ -79,15 +87,18 @@ class TestSettings:
         yaml_content = """
 models:
     qwen3:
-        runner_type: local_ollama
-        extra_args:
-            model: qwen3:8b
-orchestrator_model: qwen3
-code_analysis_model: qwen3
-code_review_model: qwen3
+        model_name: qwen3:8b
+        api_base: http://localhost:11434/v1
+        api_key: ollama
+orchestrator_model_name: qwen3
+code_analysis_model_name: qwen3
+code_review_model_name: qwen3
         """
         load_settings_from_yaml(yaml_content)
         settings = get_settings()
-        assert settings.orchestrator_model == "qwen3"
-        assert settings.models["qwen3"].runner_type == "local_ollama"
-        assert settings.models["qwen3"].extra_args == {"model": "qwen3:8b"}
+        assert settings.orchestrator_model_name == "qwen3"
+        assert settings.code_analysis_model_name == "qwen3"
+        assert settings.code_review_model_name == "qwen3"
+        assert settings.models["qwen3"].model_name == "qwen3:8b"
+        assert settings.models["qwen3"].api_base == "http://localhost:11434/v1"
+        assert settings.models["qwen3"].api_key == "ollama"

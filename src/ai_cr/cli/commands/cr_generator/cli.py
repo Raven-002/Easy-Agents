@@ -1,19 +1,35 @@
-"""Console script for ai_cr."""
-
 import typer
 from rich.console import Console
 
+from ai_cr.cli.app import app
+from ai_cr.logger.logging_utils import configure_logging, dlog, status
 from ai_cr.settings.settings import load_settings_from_yaml
+from ai_cr.utils.git_utils.git_diff import git_diff, summerize_diff_files
+from ai_cr.utils.types.code_review import CodeReview, CodeReviewGeneralComment
 
-from .cr_generator import generate_code_review
-from .utils.logging_utils import configure_logging, dlog, status
 
-app = typer.Typer()
+def generate_cr(target_branch: str) -> CodeReview:
+    diff = git_diff(target_branch)
+    diff_str = f"Modified Files:\n{summerize_diff_files(diff)}\n"
+    diff_str += "Diff blocks:\n"
+    i = 0
+    for file in diff:
+        for hunk in file.hunks:
+            i += 1
+            diff_str += f"=== {i}: {file.path_a}\n{hunk.hunk}\n\n"
+    diff_context = f"<diff>\n{diff_str}\n</diff>"
+
+    assert diff_context
+    # TODO
+
+    return CodeReview("AI-CR-BOT", [CodeReviewGeneralComment("")])
+
+
 console = Console()
 
 
 @app.command()
-def main(
+def cr(
     target_branch: str = typer.Argument(help="Target branch to generate code review for."),
     skip_print: bool = typer.Option(False, help="Skip printing generated code review."),
     cache_dir: str = typer.Option(".cr.cache", envvar="AI_CR_CACHE_DIR", help="Directory to store cache files."),
@@ -39,10 +55,6 @@ def main(
     )
 
     with status("Generating code review..."):
-        cr = generate_code_review(target_branch)
+        review = generate_cr(target_branch)
     if not skip_print:
-        cr.print_comments(console)
-
-
-if __name__ == "__main__":
-    app()
+        review.print_comments(console)
