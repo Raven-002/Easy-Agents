@@ -17,7 +17,7 @@ ai_cr = ["templates/**/*.j2"]
 name = "ai-cr"
 version = "0.1.0"
 dependencies = [
-  "openai-agents",
+  "pydantic_ai",
   "gitpython",
   "pyyaml",
   "rich",
