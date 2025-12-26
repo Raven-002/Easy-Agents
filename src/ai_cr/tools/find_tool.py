@@ -4,9 +4,9 @@ from typing import Any
 
 import pathspec
 from pydantic import BaseModel, Field
-from pydantic_ai import RunContext
+from pydantic_ai import RunContext, Tool
 
-from .function_tool import FunctionTool
+from .function_tool import create_function_tool
 
 
 class _Parameters(BaseModel):
@@ -45,7 +45,7 @@ def is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
 
 async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
     """Search for text patterns in files using regular expressions."""
-    matches = []
+    matches: list[_Match] = []
 
     try:
         # Compile the regex pattern
@@ -55,7 +55,7 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
         return _Results(matches=[], matches_count=0)
 
     # Collect all files to search
-    files_to_search = []
+    files_to_search: list[Path] = []
 
     for path_str in parameters.paths:
         path = Path(path_str)
@@ -65,14 +65,15 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
 
         # Load gitignore patterns if they exist in the root of the search path
         spec = None
+        # TODO: Find it better
         gitignore_path = path / ".gitignore" if path.is_dir() else path.parent / ".gitignore"
 
         if gitignore_path.exists():
             try:
-                with open(gitignore_path, encoding="utf-8") as f:
-                    spec = pathspec.PathSpec.from_lines("gitwildmatch", f)
+                with open(gitignore_path, encoding="utf-8") as file:
+                    spec = pathspec.PathSpec.from_lines("gitwildmatch", file)
             except Exception:
-                spec = None
+                # spec = None
                 raise
 
         if parameters.is_dir and path.is_dir():
@@ -98,8 +99,8 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
     for file_path in files_to_search:
         try:
             # Try to read as a text file
-            with open(file_path, encoding="utf-8", errors="strict") as f:
-                lines = f.readlines()
+            with open(file_path, encoding="utf-8", errors="strict") as file:
+                lines = file.readlines()
 
             # Search each line
             for line_num, line in enumerate(lines, start=1):
@@ -110,7 +111,7 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
                     end_idx = min(len(lines), line_num + parameters.context_after)
 
                     # Build context
-                    context_lines = []
+                    context_lines: list[str] = []
                     for i in range(start_idx, end_idx):
                         context_lines.append(lines[i].rstrip("\n"))
 
@@ -131,7 +132,7 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
     return _Results(matches=matches, matches_count=len(matches))
 
 
-find_tool = FunctionTool(
+find_tool: Tool[Any] = create_function_tool(
     name="find_tool",
     description=(
         "Search for text patterns in files using regular expressions. Can search single files or recursively "
@@ -140,4 +141,4 @@ find_tool = FunctionTool(
     run=_run,
     parameters_type=_Parameters,
     results_type=_Results,
-).to_tool()
+)

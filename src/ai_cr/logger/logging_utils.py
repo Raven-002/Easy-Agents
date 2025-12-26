@@ -100,7 +100,7 @@ def status(message: str) -> Iterator[None]:
         status_obj = console.status(message, spinner="dots")
         status_obj.__enter__()
 
-        def update_status():
+        def update_status() -> None:
             while not stop_event.is_set():
                 elapsed = time.time() - start_time
                 status_obj.update(f"{message} ({elapsed:.0f}s)")

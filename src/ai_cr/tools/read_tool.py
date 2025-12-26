@@ -1,9 +1,9 @@
 from typing import Any
 
-from mistralai.extra.run.context import RunContext
 from pydantic import BaseModel, Field
+from pydantic_ai import RunContext, Tool
 
-from .function_tool import FunctionTool
+from .function_tool import create_function_tool
 
 
 class _Parameters(BaseModel):
@@ -37,10 +37,10 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
     return _Results(lines=lines, lines_count=len(lines))
 
 
-read_tool = FunctionTool(
+read_tool: Tool[Any] = create_function_tool(
     name="read_tool",
     description="Read the content of a file.",
     run=_run,
     parameters_type=_Parameters,
     results_type=_Results,
-).to_tool()
+)

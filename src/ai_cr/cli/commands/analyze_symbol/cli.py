@@ -16,7 +16,7 @@ from ai_cr.settings.settings import get_settings, load_settings_from_yaml
 from ai_cr.utils.agents_runner import run_agent
 
 
-def print_analysis_results(results: CodeAnalysisResults):
+def print_analysis_results(results: CodeAnalysisResults) -> None:
     # 1. Metadata Table (Type and Files)
     meta_table = Table(show_header=False, box=None, padding=(0, 1))
     meta_table.add_column("Key", style="bold cyan")
@@ -51,7 +51,7 @@ def print_analysis_results(results: CodeAnalysisResults):
 def analyze_symbol(
     symbol: str = typer.Argument(help="Symbol name to analyze."),
     language: str = typer.Option("any", help="Language of the symbol"),
-    paths: list[str] = typer.Option(default=["."], help="Paths to look at"),
+    path: str = typer.Option(default=".", help="Paths to look at"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
     debug: bool = typer.Option(False, "--debug", "-vv", help="Enable debug output (most verbose)"),
     spinner: bool | None = typer.Option(
@@ -73,7 +73,7 @@ def analyze_symbol(
             CodeDir(
                 language=language,
                 description="",
-                paths=paths,
+                paths=[path],
             )
         ],
     )

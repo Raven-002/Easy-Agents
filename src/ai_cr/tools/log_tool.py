@@ -1,9 +1,9 @@
 from typing import Any, Literal
 
-from mistralai.extra.run.context import RunContext
 from pydantic import BaseModel, Field
+from pydantic_ai import RunContext, Tool
 
-from .function_tool import FunctionTool
+from .function_tool import create_function_tool
 
 type LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -17,9 +17,9 @@ async def _run(_ctx: RunContext[Any], parameters: LogParameters) -> None:
     print(f"[{parameters.log_level}] {parameters.message}", flush=True)
 
 
-log_tool = FunctionTool(
+log_tool: Tool[Any] = create_function_tool(
     name="log_tool",
     description="Create a log to inform the user about progress.",
     run=_run,
     parameters_type=LogParameters,
-).to_tool()
+)

@@ -2,10 +2,10 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext, Tool
+from pydantic_ai import Agent, NativeOutput, RunContext, Tool
 from pydantic_ai.models import Model
 
-from ai_cr.tools import FunctionTool, find_tool, read_tool
+from ai_cr.tools import create_function_tool, find_tool, read_tool
 
 from .code_context import CodeProjectContext
 
@@ -42,27 +42,25 @@ def symbol_analyzer_instructions(ctx: RunContext[CodeProjectContext]) -> str:
     return instructions_template.format(code_layout_json=ctx.deps.model_dump_json())
 
 
-def create_symbol_analyzer(model: Model) -> Agent[CodeProjectContext]:
-    return Agent[CodeProjectContext](
+def create_symbol_analyzer(model: Model) -> Agent[CodeProjectContext, CodeAnalysisResults]:
+    return Agent[CodeProjectContext, CodeAnalysisResults](
         name="Code Symbol Analyzer",
         instructions=symbol_analyzer_instructions,
         model=model,
         deps_type=CodeProjectContext,
-        output_type=CodeAnalysisResults,
+        output_type=NativeOutput(CodeAnalysisResults),
         tools=[find_tool, read_tool],
     )
 
 
-def create_symbol_analyzer_tool[T](
-    model: Model, deps_extractor: Callable[[RunContext[T]], CodeProjectContext]
-) -> Tool[T]:
+def create_symbol_analyzer_tool[T](model: Model, deps_extractor: Callable[[T], CodeProjectContext]) -> Tool[T]:
     agent = create_symbol_analyzer(model)
 
     async def _run(_ctx: RunContext[Any], deps: CodeProjectContext, parameters: _Parameters) -> CodeAnalysisResults:
         result_string = str(await agent.run(f"Analyze the symbol: '{parameters.symbol_name}'.", deps=deps))
         return CodeAnalysisResults.model_validate_json(result_string, strict=True, extra="forbid")
 
-    return FunctionTool(
+    return create_function_tool(
         name="symbol_analyzer",
         description="Analyze a symbol in the project",
         run=_run,
@@ -70,4 +68,4 @@ def create_symbol_analyzer_tool[T](
         results_type=CodeAnalysisResults,
         deps_type=CodeProjectContext,
         deps_extractor=deps_extractor,
-    ).to_tool()
+    )
