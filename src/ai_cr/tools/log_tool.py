@@ -1,25 +1,25 @@
 from typing import Any, Literal
 
-from agents import FunctionTool, RunContextWrapper
+from mistralai.extra.run.context import RunContext
 from pydantic import BaseModel, Field
+
+from .function_tool import FunctionTool
 
 type LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
-class _Parameters(BaseModel):
-    log_level: LogLevel = Field(..., description="The level of the message.")
-    message: str = Field(..., description="Message to log.")
+class LogParameters(BaseModel):
+    log_level: LogLevel = Field(description="The level of the message.")
+    message: str = Field(description="Message to log.")
 
 
-async def _run(_ctx: RunContextWrapper[Any], args: str) -> str:  # type: ignore
-    params = _Parameters.model_validate_json(args)
-
-    print(f"[{params.log_level}] {params.message}", flush=True)
+async def _run(_ctx: RunContext[Any], parameters: LogParameters) -> None:
+    print(f"[{parameters.log_level}] {parameters.message}", flush=True)
 
 
 log_tool = FunctionTool(
-    name="log",
+    name="log_tool",
     description="Create a log to inform the user about progress.",
-    params_json_schema=_Parameters.model_json_schema(),
-    on_invoke_tool=_run,
-)
+    run=_run,
+    parameters_type=LogParameters,
+).to_tool()

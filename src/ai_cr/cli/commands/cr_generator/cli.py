@@ -1,7 +1,6 @@
 import typer
-from rich.console import Console
 
-from ai_cr.cli.app import app
+from ai_cr.cli.app import app, console
 from ai_cr.logger.logging_utils import configure_logging, dlog, status
 from ai_cr.settings.settings import load_settings_from_yaml
 from ai_cr.utils.git_utils.git_diff import git_diff, summerize_diff_files
@@ -23,9 +22,6 @@ def generate_cr(target_branch: str) -> CodeReview:
     # TODO
 
     return CodeReview("AI-CR-BOT", [CodeReviewGeneralComment("")])
-
-
-console = Console()
 
 
 @app.command()

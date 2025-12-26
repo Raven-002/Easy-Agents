@@ -6,6 +6,7 @@ class CodeDir(BaseModel):
     description: str
     paths: list[str]
 
+
 class CodeProjectContext(BaseModel):
     description: str
     directories: list[CodeDir]

@@ -21,6 +21,7 @@ source = { editable = "." }
 dependencies = [
     { name = "gitpython" },
     { name = "jinja2" },
+    { name = "pathspec" },
     { name = "pydantic-ai" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -46,6 +47,7 @@ requires-dist = [
     { name = "ipdb", marker = "extra == 'dev'" },
     { name = "jinja2" },
     { name = "mypy", marker = "extra == 'dev'" },
+    { name = "pathspec" },
     { name = "pydantic-ai" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pyyaml" },

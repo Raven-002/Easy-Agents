@@ -15,7 +15,7 @@ _console: Console | None = None
 _spinner_enabled: bool | None = None  # None means auto (TTY-only)
 
 
-def _get_console() -> Console:
+def get_console() -> Console:
     global _console
     if _console is None:
         _console = Console()
@@ -46,23 +46,48 @@ def is_debug() -> bool:
 
 def vlog(message: str, markup: bool = True) -> None:
     if is_verbose():
-        _get_console().log(message, markup=markup)
+        get_console().log(message, markup=markup)
 
 
 def dlog(message: str, markup: bool = True) -> None:
     if is_debug():
-        _get_console().log(message, markup=markup)
+        get_console().log(message, markup=markup)
+
+
+# @contextmanager
+# def status(message: str) -> Iterator[None]:
+#     """Show a spinner/status while inside the context, if enabled.
+#
+#     Spinner enablement precedence:
+#     1) Explicit `spinner` passed to `configure_logging`.
+#     2) Auto: enabled if the console is a TTY (interactive terminal).
+#     """
+#     console = get_console()
+#     # Determine enablement
+#     if _spinner_enabled is None:
+#         show = console.is_terminal
+#     else:
+#         show = bool(_spinner_enabled)
+#
+#     if show:
+#         with console.status(message, spinner="dots"):
+#             yield
+#     else:
+#         get_console().print(message)
+#         yield
 
 
 @contextmanager
 def status(message: str) -> Iterator[None]:
     """Show a spinner/status while inside the context, if enabled.
-
     Spinner enablement precedence:
     1) Explicit `spinner` passed to `configure_logging`.
     2) Auto: enabled if the console is a TTY (interactive terminal).
     """
-    console = _get_console()
+    import time
+    from threading import Event, Thread
+
+    console = get_console()
     # Determine enablement
     if _spinner_enabled is None:
         show = console.is_terminal
@@ -70,8 +95,26 @@ def status(message: str) -> Iterator[None]:
         show = bool(_spinner_enabled)
 
     if show:
-        with console.status(message, spinner="dots"):
+        start_time = time.time()
+        stop_event = Event()
+        status_obj = console.status(message, spinner="dots")
+        status_obj.__enter__()
+
+        def update_status():
+            while not stop_event.is_set():
+                elapsed = time.time() - start_time
+                status_obj.update(f"{message} ({elapsed:.0f}s)")
+                time.sleep(0.05)
+
+        thread = Thread(target=update_status, daemon=True)
+        thread.start()
+
+        try:
             yield
+        finally:
+            stop_event.set()
+            thread.join(timeout=0.5)
+            status_obj.__exit__(None, None, None)
     else:
-        _get_console().print(message)
+        get_console().print(message)
         yield

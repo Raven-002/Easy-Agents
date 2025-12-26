@@ -19,6 +19,7 @@ version = "0.1.0"
 dependencies = [
   "pydantic_ai",
   "gitpython",
+  "pathspec",
   "pyyaml",
   "rich",
   "typer",

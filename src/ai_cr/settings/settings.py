@@ -1,9 +1,9 @@
 from typing import Any
 
 import yaml
-from agents import OpenAIChatCompletionsModel
-from openai import AsyncOpenAI
 from pydantic import BaseModel
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.litellm import LiteLLMProvider
 
 
 class AiModel(BaseModel):
@@ -11,10 +11,10 @@ class AiModel(BaseModel):
     api_base: str
     api_key: str | None = None
 
-    def create_completion_model(self) -> OpenAIChatCompletionsModel:
-        return OpenAIChatCompletionsModel(
-            model=self.model_name,
-            openai_client=AsyncOpenAI(base_url=self.api_base, api_key=(self.api_key if self.api_key else "")),
+    def create_completion_model(self) -> OpenAIChatModel:
+        return OpenAIChatModel(
+            model_name=self.model_name,
+            provider=LiteLLMProvider(api_base=self.api_base, api_key=(self.api_key if self.api_key else "")),
         )
 
 
@@ -44,25 +44,25 @@ class Settings(BaseModel):
         validate_model_name(self.code_analysis_model_name, "code analysis")
         validate_model_name(self.code_review_model_name, "code review")
 
-    def create_model_object(self, model_name: str) -> OpenAIChatCompletionsModel:
+    def create_model_object(self, model_name: str) -> OpenAIChatModel:
         if model_name not in self.models.keys():
             raise ValueError(f"Model {model_name} not found in models.")
         return self.models[model_name].create_completion_model()
 
     @property
-    def orchestrator_model(self) -> OpenAIChatCompletionsModel:
+    def orchestrator_model(self) -> OpenAIChatModel:
         if not self.orchestrator_model_name:
             raise ValueError("Orchestrator model not found in settings.")
         return self.create_model_object(self.orchestrator_model_name)
 
     @property
-    def code_analysis_model(self) -> OpenAIChatCompletionsModel:
+    def code_analysis_model(self) -> OpenAIChatModel:
         if not self.code_analysis_model_name:
             raise ValueError("Code analysis model not found in settings.")
         return self.create_model_object(self.code_analysis_model_name)
 
     @property
-    def code_review_model(self) -> OpenAIChatCompletionsModel:
+    def code_review_model(self) -> OpenAIChatModel:
         if not self.code_review_model_name:
             raise ValueError("Code review model not found in settings.")
         return self.create_model_object(self.code_review_model_name)
