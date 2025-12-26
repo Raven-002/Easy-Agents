@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, NativeOutput, RunContext, Tool
+from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.models import Model
 
 from ai_cr.tools import create_function_tool, find_tool, read_tool
@@ -35,6 +35,11 @@ GUIDELINES:
 - Understand the symbol's documentation.
 - Check if the documentation is correct. It may be wrong.
 - Find edge cases for the symbol.
+- Never assume and Never fabricate. When external knowledge is required, use a tool.
+- Always check how the symbol is used in the code. Do not assume it is a classic use if it is a known symbol.
+- Consider the symbol might be defined outside of the project, in which case figure it out based on its usage and your
+  knowledge of where it comes from if you find it comes from a known library. If you can not tell where it comes from,
+  mention what it could be but clarify it is an assumption since there is not enough data.
 """
 
 
@@ -42,13 +47,13 @@ def symbol_analyzer_instructions(ctx: RunContext[CodeProjectContext]) -> str:
     return instructions_template.format(code_layout_json=ctx.deps.model_dump_json())
 
 
-def create_symbol_analyzer(model: Model) -> Agent[CodeProjectContext, CodeAnalysisResults]:
-    return Agent[CodeProjectContext, CodeAnalysisResults](
+def create_symbol_analyzer(model: Model) -> Agent[CodeProjectContext]:
+    return Agent[CodeProjectContext](  # pyright: ignore[reportCallIssue]
         name="Code Symbol Analyzer",
         instructions=symbol_analyzer_instructions,
         model=model,
         deps_type=CodeProjectContext,
-        output_type=NativeOutput(CodeAnalysisResults),
+        output_type=CodeAnalysisResults,  # type: ignore
         tools=[find_tool, read_tool],
     )
 
