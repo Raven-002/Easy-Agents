@@ -12,5 +12,5 @@ models:
     api_base: http://localhost:11434/v1
     api_key: ollama
 orchestrator_model_name: qwen3-14
-code_analysis_model_name: qwen3-4
+code_analysis_model_name: qwen3-14
 code_review_model_name: qwen3-14
