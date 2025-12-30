@@ -11,6 +11,10 @@ models:
     model_name: qwen3:4b-instruct
     api_base: http://localhost:11434/v1
     api_key: ollama
-orchestrator_model_name: qwen3-14
-code_analysis_model_name: qwen3-14
-code_review_model_name: qwen3-14
+  qwen3-30:
+    model_name: "hf.co/mradermacher/Qwen3-30B-A6B-16-Extreme-GGUF:Q8_0"
+    api_base: http://localhost:11434/v1
+    api_key: ollama
+orchestrator_model_name: qwen3-30
+code_analysis_model_name: qwen3-30
+code_review_model_name: qwen3-30
