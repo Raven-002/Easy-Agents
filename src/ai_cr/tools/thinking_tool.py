@@ -9,6 +9,7 @@ from .function_tool import create_function_tool
 class ThinkingParameters(BaseModel):
     message: str = Field(description="The thinking message.")
 
+
 class ThinkingResults(BaseModel):
     message: str = Field(description="The thinking message.")
 

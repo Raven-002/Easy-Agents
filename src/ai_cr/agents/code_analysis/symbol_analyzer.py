@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.models import Model
 
-from ai_cr.tools import create_function_tool, find_tool, read_tool
+from ai_cr.tools import FindTool, create_function_tool, read_tool
 
+from ...tools.deps.project_files_deps import ProjectFilesDeps
 from .code_context import CodeProjectContext
 
 
@@ -40,6 +41,9 @@ GUIDELINES:
 - Consider the symbol might be defined outside of the project, in which case figure it out based on its usage and your
   knowledge of where it comes from if you find it comes from a known library. If you can not tell where it comes from,
   mention what it could be but clarify it is an assumption since there is not enough data.
+
+OUTPUT:
+- Output the final result as a final_result tool call.
 """
 
 
@@ -53,8 +57,9 @@ def create_symbol_analyzer(model: Model) -> Agent[CodeProjectContext]:
         instructions=symbol_analyzer_instructions,
         model=model,
         deps_type=CodeProjectContext,
+
         output_type=CodeAnalysisResults,  # type: ignore
-        tools=[find_tool, read_tool],
+        tools=[FindTool(CodeProjectContext, lambda d: ProjectFilesDeps(project_root=d.project_root)), read_tool],
     )
 
 

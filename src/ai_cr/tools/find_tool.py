@@ -1,12 +1,13 @@
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pathspec
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext, Tool
 
-from .function_tool import create_function_tool
+from .deps.project_files_deps import ProjectFilesDeps
+from .function_tool import BaseTool
 
 
 class _Parameters(BaseModel):
@@ -43,7 +44,7 @@ def is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
         return True  # Treat unreadable files as binary/skip
 
 
-async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Parameters) -> _Results:
     """Search for text patterns in files using regular expressions."""
     matches: list[_Match] = []
 
@@ -59,6 +60,8 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
 
     for path_str in parameters.paths:
         path = Path(path_str)
+        if not path.is_absolute():
+            path = Path(deps.project_root) / path
 
         if not path.exists():
             continue
@@ -132,13 +135,18 @@ async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
     return _Results(matches=matches, matches_count=len(matches))
 
 
-find_tool: Tool[Any] = create_function_tool(
-    name="find_tool",
-    description=(
-        "Search for text patterns in files using regular expressions. Can search single files or recursively "
-        "through directories."
-    ),
-    run=_run,
-    parameters_type=_Parameters,
-    results_type=_Results,
-)
+class FindTool[T](BaseTool):
+    def __init__(self, app_deps_type: T, extract_path: Callable[[T], ProjectFilesDeps]):
+        super().__init__(
+            name="find_tool",
+            description=(
+                "Search for text patterns in files using regular expressions. Can search single files or recursively "
+                "through directories."
+            ),
+            run=_run,
+            deps_type=ProjectFilesDeps,
+            parameters_type=_Parameters,
+            results_type=_Results,
+            deps_extractor=extract_path,
+            app_deps_type=app_deps_type,
+        )

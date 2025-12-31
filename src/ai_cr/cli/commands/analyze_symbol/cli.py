@@ -69,11 +69,12 @@ def analyze_symbol(
 
     project_context = CodeProjectContext(
         description="",
+        project_root=".",
         directories=[
             CodeDir(
                 language=language,
                 description="",
-                paths=[path],
+                path=path,
             )
         ],
     )
