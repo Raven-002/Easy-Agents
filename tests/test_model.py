@@ -4,7 +4,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from easy_agents.agent.context import Context
-from easy_agents.agent.model import DescribedBaseModel, Model
+from easy_agents.agent.model import Model
 from easy_agents.agent.tool import BaseTool, RunContext
 
 
@@ -31,15 +31,18 @@ def test_response_format() -> None:
     )
 
     class ResponseFormat(BaseModel):
+        """A list of languages"""
+
+        model_config = {"title": "languages_list"}
         languages: list[str]
 
     result = model.chat_completion(
         context.messages,
-        response_format=DescribedBaseModel("languages_list", "List of programming languages", ResponseFormat),
+        response_format=ResponseFormat,
     )
     print(result)
-    response = ResponseFormat.model_validate_json(result["content"], strict=True)
-    assert len(response.languages) > 0
+    isinstance(result.message.content, ResponseFormat)
+    assert len(result.message.content.languages) > 0
 
 
 def test_response_format_irrelevant() -> None:
@@ -56,11 +59,10 @@ def test_response_format_irrelevant() -> None:
 
     result = model.chat_completion(
         context.messages,
-        response_format=DescribedBaseModel("languages_list", "List of programming languages", ResponseFormat),
+        response_format=ResponseFormat,
     )
     print(result)
-    response = ResponseFormat.model_validate_json(result["content"], strict=True)
-    assert len(response.languages) > 0
+    assert len(result.message.content.languages) > 0
 
 
 # The model used does not support required tools, so this test is skipped.
@@ -144,10 +146,10 @@ def test_auto_tools_needed() -> None:
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    assert result["content"] == ""
-    assert len(list(result["tool_calls"])) == 1
-    assert result["tool_calls"][0].function.name == "weather_tool"
-    response = WeatherToolParams.model_validate_json(result["tool_calls"][0].function.arguments, strict=True)
+    assert result.message.content == ""
+    assert len(list(result.message.tool_calls)) == 1
+    assert result.message.tool_calls[0].function.name == "weather_tool"
+    response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
     assert response == WeatherToolParams(city="TelAviv")
 
 
@@ -179,7 +181,7 @@ def test_auto_tools_relevant_not_needed() -> None:
 
     result = model.chat_completion(context.messages, tools=[final_output_tool], tool_choice="auto")
     print(result)
-    assert len(result["content"]) > 0
+    assert len(result.message.content) > 0
     # The model is not deterministic about using a tool call.
     # assert len(list(result["tool_calls"])) == 0
 
@@ -206,8 +208,8 @@ def test_auto_tools_irrelevant_not_needed() -> None:
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    assert len(result["content"]) > 0
-    assert len(list(result["tool_calls"])) == 0
+    assert len(result.message.content) > 0
+    assert len(list(result.message.tool_calls)) == 0
 
 
 def test_tools_with_content() -> None:
@@ -235,8 +237,8 @@ def test_tools_with_content() -> None:
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    assert len(result["content"]) > 0
-    assert len(list(result["tool_calls"])) == 1
-    assert result["tool_calls"][0].function.name == "weather_tool"
-    response = WeatherToolParams.model_validate_json(result["tool_calls"][0].function.arguments, strict=True)
+    assert len(result.message.content) > 0
+    assert len(list(result.message.tool_calls)) == 1
+    assert result.message.tool_calls[0].function.name == "weather_tool"
+    response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
     assert response == WeatherToolParams(city="Jerusalem")

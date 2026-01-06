@@ -1,20 +1,7 @@
 from dataclasses import dataclass
+from typing import Literal
 
-from openai.types.chat import (
-    ChatCompletionAssistantMessageParam as AssistantMessage,
-)
-from openai.types.chat import (
-    ChatCompletionMessageParam as ChatCompletionMessage,
-)
-from openai.types.chat import (
-    ChatCompletionSystemMessageParam as SystemMessage,
-)
-from openai.types.chat import (
-    ChatCompletionToolMessageParam as ToolMessage,
-)
-from openai.types.chat import (
-    ChatCompletionUserMessageParam as UserMessage,
-)
+from pydantic import BaseModel
 
 __all__ = [
     "Context",
@@ -22,8 +9,53 @@ __all__ = [
     "SystemMessage",
     "UserMessage",
     "AssistantMessage",
+    "ToolCall",
+    "ToolCallFunction",
     "ToolMessage",
 ]
+
+
+class ChatCompletionMessage(BaseModel):
+    role: Literal["system", "user", "assistant", "tool"]
+
+
+class SystemMessage(ChatCompletionMessage):
+    role: Literal["system"] = "system"
+    content: str
+    name: str | None = None
+
+
+class UserMessage(ChatCompletionMessage):
+    role: Literal["user"] = "user"
+    content: str
+    name: str | None = None
+
+
+class ToolCallFunction(BaseModel):
+    name: str
+    arguments: str
+
+
+class ToolCall(BaseModel):
+    id: str
+    type: Literal["function"] = "function"
+    function: ToolCallFunction
+
+
+class AssistantMessage[T](ChatCompletionMessage):
+    role: Literal["assistant"] = "assistant"
+    content: T
+    reasoning: str | None = None
+    refusal: str | None = None
+    tool_calls: list[ToolCall] | None = None
+    name: str | None = None
+
+
+class ToolMessage(ChatCompletionMessage):
+    role: Literal["tool"] = "tool"
+    tool_call_id: str
+    content: str
+    name: str | None = None
 
 
 @dataclass
