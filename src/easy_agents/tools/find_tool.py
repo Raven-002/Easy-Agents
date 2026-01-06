@@ -1,13 +1,15 @@
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pathspec
 from pydantic import BaseModel, Field
-from pydantic_ai import RunContext, Tool
+from pydantic_ai import RunContext
+
+from easy_agents.agent.tool import BaseTool
 
 from .deps.project_files_deps import ProjectFilesDeps
-from .function_tool import BaseTool
 
 
 class _Parameters(BaseModel):
@@ -136,7 +138,7 @@ async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Param
 
 
 class FindTool[T](BaseTool):
-    def __init__(self, app_deps_type: T, extract_path: Callable[[T], ProjectFilesDeps]):
+    def __init__(self, app_deps_type: type[T], extract_path: Callable[[T], ProjectFilesDeps]):
         super().__init__(
             name="find_tool",
             description=(

@@ -19,6 +19,8 @@ models:
     model_name: "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL"
     api_base: http://localhost:11434/v1
     api_key: ollama
-orchestrator_model_name: qwen3-30-a6b
-code_analysis_model_name: qwen3-30-a6b
-code_review_model_name: qwen3-30-a6b
+model_choices:
+  orchestration: qwen3-30-a6b
+  code_analysis: qwen3-30-a6b
+  code_writing: qwen3-30-a6b
+  context_summarization: qwen3-30-a6b

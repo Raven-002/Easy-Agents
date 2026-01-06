@@ -3,7 +3,8 @@ from typing import Any
 
 from pytest import fixture, raises
 
-from ai_cr.settings.settings import (
+from easy_agents.settings.settings import (
+    AiExpertise,
     AiModel,
     Settings,
     get_settings,
@@ -19,9 +20,12 @@ from ai_cr.settings.settings import (
 def default_settings() -> Settings:
     return Settings(
         models={"qwen3": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-        orchestrator_model_name="qwen3",
-        code_analysis_model_name="qwen3",
-        code_review_model_name="qwen3",
+        model_choices={
+            AiExpertise.ORCHESTRATION: "qwen3",
+            AiExpertise.CODE_ANALYSIS: "qwen3",
+            AiExpertise.CODE_WRITING: "qwen3",
+            AiExpertise.CONTEXT_SUMMARIZATION: "qwen3",
+        },
     )
 
 
@@ -33,45 +37,40 @@ class TestSettings:
     def test_ai_model_sanity(self):
         AiModel(model_name="qwen3:8b", api_base="http://localhost:11434/v1", api_key="ollama")
 
-    def test_settings_missing_orchestrator_model(self):
+    def test_settings_missing_model_choices(self):
         with raises(ValueError):
             Settings(
                 models={"qwen3": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-                orchestrator_model_name="glm",
-                code_analysis_model_name="qwen3",
-                code_review_model_name="qwen3",
+                model_choices={
+                    AiExpertise.ORCHESTRATION: "qwen3",
+                    AiExpertise.CODE_ANALYSIS: "qwen3",
+                    AiExpertise.CODE_WRITING: "qwen3",
+                    # Missing CONTEXT_SUMMARIZATION
+                },
             )
 
     def test_settings_empty_model_name(self):
         with raises(ValueError):
             Settings(
                 models={"": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-                orchestrator_model_name="qwen3",
-                code_analysis_model_name="qwen3",
-                code_review_model_name="qwen3",
+                model_choices={
+                    AiExpertise.ORCHESTRATION: "qwen3",
+                    AiExpertise.CODE_ANALYSIS: "qwen3",
+                    AiExpertise.CODE_WRITING: "qwen3",
+                    AiExpertise.CONTEXT_SUMMARIZATION: "qwen3",
+                },
             )
 
-    def test_settings_empty_model_name_for_category(self):
+    def test_settings_empty_model_name_for_choice(self):
         with raises(ValueError):
             Settings(
                 models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-                orchestrator_model_name="",
-                code_analysis_model_name="qwen3",
-                code_review_model_name="qwen3",
-            )
-        with raises(ValueError):
-            Settings(
-                models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-                orchestrator_model_name="qwen3",
-                code_analysis_model_name="",
-                code_review_model_name="qwen3",
-            )
-        with raises(ValueError):
-            Settings(
-                models={"qwen": AiModel(api_base="http://localhost:11434/v1", model_name="qwen3:8b")},
-                orchestrator_model_name="qwen3",
-                code_analysis_model_name="qwen3",
-                code_review_model_name="",
+                model_choices={
+                    AiExpertise.ORCHESTRATION: "",
+                    AiExpertise.CODE_ANALYSIS: "qwen3",
+                    AiExpertise.CODE_WRITING: "qwen3",
+                    AiExpertise.CONTEXT_SUMMARIZATION: "qwen3",
+                },
             )
 
     def test_get_settings_uninitialized(self):
@@ -90,15 +89,20 @@ models:
         model_name: qwen3:8b
         api_base: http://localhost:11434/v1
         api_key: ollama
-orchestrator_model_name: qwen3
-code_analysis_model_name: qwen3
-code_review_model_name: qwen3
+model_choices:
+  orchestration: qwen3
+  code_analysis: qwen3
+  code_writing: qwen3
+  context_summarization: qwen3
         """
         load_settings_from_yaml(yaml_content)
         settings = get_settings()
-        assert settings.orchestrator_model_name == "qwen3"
-        assert settings.code_analysis_model_name == "qwen3"
-        assert settings.code_review_model_name == "qwen3"
         assert settings.models["qwen3"].model_name == "qwen3:8b"
         assert settings.models["qwen3"].api_base == "http://localhost:11434/v1"
         assert settings.models["qwen3"].api_key == "ollama"
+        assert settings.model_choices == {
+            AiExpertise.ORCHESTRATION: "qwen3",
+            AiExpertise.CODE_ANALYSIS: "qwen3",
+            AiExpertise.CODE_WRITING: "qwen3",
+            AiExpertise.CONTEXT_SUMMARIZATION: "qwen3",
+        }

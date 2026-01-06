@@ -8,12 +8,12 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 
-from ai_cr.agents.code_analysis.code_context import CodeDir, CodeProjectContext
-from ai_cr.agents.code_analysis.symbol_analyzer import CodeAnalysisResults, create_symbol_analyzer
-from ai_cr.cli.app import app, console
-from ai_cr.logger.logging_utils import configure_logging
-from ai_cr.settings.settings import get_settings, load_settings_from_yaml
-from ai_cr.utils.agents_runner import run_agent
+from easy_agents.agents.code_analysis.code_context import CodeDir, CodeProjectContext
+from easy_agents.agents.code_analysis.symbol_analyzer import CodeAnalysisResults, create_symbol_analyzer
+from easy_agents.cli.app import app, console
+from easy_agents.logger.logging_utils import configure_logging
+from easy_agents.settings.settings import get_settings, load_settings_from_yaml
+from easy_agents.utils.agents_runner import run_agent
 
 
 def print_analysis_results(results: CodeAnalysisResults) -> None:
@@ -59,7 +59,9 @@ def analyze_symbol(
         "--spinner/--no-spinner",
         help="Show a spinner while waiting for the AI model response (default: auto, only in TTY).",
     ),
-    settings_file: str = typer.Option(".ai_cr_config.yml", envvar="AI_CR_SETTINGS_FILE", help="Path to settings file."),
+    settings_file: str = typer.Option(
+        ".easy_agents_config.yml", envvar="EASY_AGENTS_SETTINGS_FILE", help="Path to settings file."
+    ),
 ) -> None:
     """Perform code review for a given branch."""
     configure_logging(level=2 if debug else 1 if verbose else 0, console=console, spinner=spinner)

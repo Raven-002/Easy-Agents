@@ -1,14 +1,14 @@
-# ai-cr
+# easy-agents
 
-[//]: # (![PyPI version]&#40;https://img.shields.io/pypi/v/ai-cr.svg&#41;)
-[//]: # ([![Documentation Status]&#40;https://readthedocs.org/projects/ai-cr/badge/?version=latest&#41;]&#40;https://ai-cr.readthedocs.io/en/latest/?version=latest&#41;)
+[//]: # (![PyPI version]&#40;https://img.shields.io/pypi/v/easy-agents.svg&#41;)
+[//]: # ([![Documentation Status]&#40;https://readthedocs.org/projects/easy-agents/badge/?version=latest&#41;]&#40;https://easy-agents.readthedocs.io/en/latest/?version=latest&#41;)
 
 CR AI agent.
 
-[//]: # (* PyPI package: https://pypi.org/project/ai-cr/)
+[//]: # (* PyPI package: https://pypi.org/project/easy-agents/)
 * Free software: MIT License
 
-[//]: # (* Documentation: https://ai-cr.readthedocs.io.)
+[//]: # (* Documentation: https://easy-agents.readthedocs.io.)
 
 ## Features
 

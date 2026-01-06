@@ -21,7 +21,7 @@ async def _run(_ctx: RunContext[Any], parameters: ThinkingParameters) -> Thinkin
 thinking_tool: Tool[Any] = create_function_tool(
     name="thinking_tool",
     description="A scratchpad for thinking. Returns its input like an echo server. "
-                "Use when there is a need for internal thinking. Use multiple times if needed.",
+    "Use when there is a need for internal thinking. Use multiple times if needed.",
     run=_run,
     parameters_type=ThinkingParameters,
     results_type=ThinkingResults,

@@ -10,11 +10,11 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-ai_cr = ["templates/**/*.j2"]
+easy_agents = ["templates/**/*.j2"]
 
 # --- Project ------------------------------------------------------------------
 [project]
-name = "ai-cr"
+name = "easy-agents"
 version = "0.1.0"
 dependencies = [
   "pydantic_ai",
@@ -26,7 +26,7 @@ dependencies = [
   "jinja2",
 ]
 requires-python = ">= 3.12"
-description = "CR ai agent"
+description = "Easy Agents"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -55,12 +55,12 @@ dev = [
 ]
 
 [project.urls]
-homepage = "https://github.com/Raven-002/ai_cr"
-bugs = "https://github.com/Raven-002/ai_cr/issues"
-changelog = "https://github.com/Raven-002/ai_cr/blob/master/changelog.md"
+homepage = "https://github.com/Raven-002/easy_agents"
+bugs = "https://github.com/Raven-002/easy_agents/issues"
+changelog = "https://github.com/Raven-002/easy_agents/blob/master/changelog.md"
 
 [project.scripts]
-ai_cr = "ai_cr.cli:cli_app"
+easy_agents = "easy_agents.cli:cli_app"
 
 
 # --- Tools --------------------------------------------------------------------

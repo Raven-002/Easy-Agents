@@ -1,4 +1,4 @@
-# Justfile for ai-cr
+# Justfile for easy-agents
 
 MIN_PY_VER := "3.12"
 MAIN_PY_VER := "3.14"
@@ -67,9 +67,9 @@ version:
 
 # remove all build, test, coverage and Python artifacts
 clean:
-	clean-build
-	clean-pyc
-	clean-test
+	just clean-build
+	just clean-pyc
+	just clean-test
 
 # remove build artifacts
 clean-build:

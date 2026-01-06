@@ -1,6 +1,6 @@
-"""Console script for ai_cr."""
+"""Console script for easy_agents."""
 
-from ai_cr import __version__
+from easy_agents import __version__
 
 from .app import app as cli_app
 from .commands import all_commands

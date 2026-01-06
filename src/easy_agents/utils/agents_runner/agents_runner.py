@@ -10,7 +10,7 @@ from pydantic_ai.messages import (
 )
 from rich.panel import Panel
 
-from ai_cr.logger.logging_utils import get_console, is_debug, is_verbose, status
+from easy_agents.logger.logging_utils import get_console, is_debug, is_verbose, status
 
 
 def should_print_tokens() -> bool:
