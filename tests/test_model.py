@@ -16,17 +16,20 @@ def get_test_models() -> Iterator[Model]:
         model_name="hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL",
         api_base="http://localhost:11434/v1",
         api_key="ollama",
+        description="",
     )
     yield Model(
         model_name="qwen3:14b",
         api_base="http://localhost:11434/v1",
         api_key="ollama",
+        description="",
         thinking=True,
     )
     yield Model(
         model_name="glm-z1-9b",  # Based on "hf.co/unsloth/GLM-Z1-9B-0414-GGUF:Q6_K_XL"
         api_base="http://localhost:11434/v1",
         api_key="ollama",
+        description="",
         thinking=True,
     )
     # NOTE: glm-4-9b non thinking has problems passing the tests, so it is removed.

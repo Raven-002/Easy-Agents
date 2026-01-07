@@ -3,13 +3,14 @@ from dataclasses import dataclass
 from typing import Literal
 
 import openai
+from openai import APIError, LengthFinishReasonError
 from openai.lib.streaming.chat import ChatCompletionStreamState
 from openai.types.chat import ChatCompletionToolChoiceOptionParam
 from openai.types.shared_params import ResponseFormatJSONSchema, ResponseFormatText
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 from pydantic import BaseModel
 
-from .context import AssistantMessage, ChatCompletionMessage, ToolCall, ToolCallFunction
+from .context import AssistantMessage, ChatCompletionMessage, ToolCall, ToolCallFunction, UserMessage
 from .tool import BaseTool
 
 
@@ -23,10 +24,24 @@ class Model(BaseModel):
     api_base: str
     api_key: str
     model_name: str
+    description: str
     thinking: bool = False
 
     def create_openai_client(self) -> openai.OpenAI:
         return openai.OpenAI(api_key=self.api_key, base_url=self.api_base)
+
+    def is_available(self) -> bool:
+        try:
+            self.chat_completion([UserMessage(content="do not think. reply yes")], tools=[], token_limit=1)
+            return True
+        except LengthFinishReasonError:
+            # Since it is limited to a single token, it is almost expected to fail.
+            return True
+        except APIError:
+            # If there is an API, it is not available.
+            return False
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error while checking model availability: {e}") from e
 
     def chat_completion[T: BaseModel | str](
         self,
