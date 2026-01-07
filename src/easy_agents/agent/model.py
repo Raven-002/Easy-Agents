@@ -23,6 +23,7 @@ class Model(BaseModel):
     api_base: str
     api_key: str
     model_name: str
+    thinking: bool = False
 
     def create_openai_client(self) -> openai.OpenAI:
         return openai.OpenAI(api_key=self.api_key, base_url=self.api_base)
@@ -35,6 +36,7 @@ class Model(BaseModel):
         response_format: type[T] = str,
         assistant_name: str = "",
         temperature: float = 0.0,
+        token_limit: int = 0,
     ) -> AssistantResponse[T]:
         tools_param = [t.get_json_schema() for t in tools] if tools else []
 
@@ -69,6 +71,7 @@ class Model(BaseModel):
             response_format=response_format_param,
             temperature=temperature,
             stream=True,
+            max_tokens=token_limit if token_limit > 0 else openai.NOT_GIVEN,
         )
 
         for chunk in stream:
@@ -89,11 +92,14 @@ class Model(BaseModel):
         else:
             content: str = msg.content or ""
 
+        reasoning: str | None = msg.reasoning if hasattr(msg, "reasoning") else None
+
         return AssistantResponse[T](
             message=AssistantMessage(
                 role="assistant",
                 name=assistant_name,
                 content=content,
+                reasoning=reasoning,
                 tool_calls=[
                     ToolCall(
                         id=t.id,
