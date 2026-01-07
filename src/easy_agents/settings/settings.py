@@ -3,8 +3,8 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.litellm import LiteLLMProvider
+
+from easy_agents.agent.model import Model
 
 
 class AiExpertise(StrEnum):
@@ -14,20 +14,8 @@ class AiExpertise(StrEnum):
     CONTEXT_SUMMARIZATION = "context_summarization"
 
 
-class AiModel(BaseModel):
-    model_name: str  # The actual model name in the api.
-    api_base: str
-    api_key: str | None = None
-
-    def create_completion_model(self) -> OpenAIChatModel:
-        return OpenAIChatModel(
-            model_name=self.model_name,
-            provider=LiteLLMProvider(api_base=self.api_base, api_key=(self.api_key if self.api_key else "")),
-        )
-
-
 class Settings(BaseModel):
-    models: dict[str, AiModel]  # The string refers to an alias name for the model.
+    models: dict[str, Model]  # The string refers to an alias name for the model.
     model_choices: dict[AiExpertise, str]  # expertise: model_name
 
     def model_post_init(self, _context: Any) -> None:
@@ -46,17 +34,6 @@ class Settings(BaseModel):
 
         for e in AiExpertise:
             validate_model_name(self.model_choices.get(e), e)
-
-    def create_model_object(self, name: AiExpertise | str) -> OpenAIChatModel:
-        if name in AiExpertise:
-            model_name = self.model_choices[name]
-        else:
-            model_name = name
-
-        if model_name not in self.models.keys():
-            raise ValueError(f"Model {model_name} not found in models.")
-
-        return self.models[model_name].create_completion_model()
 
 
 __settings: Settings | None = None
