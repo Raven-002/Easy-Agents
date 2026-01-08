@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .context import Context, ToolCall, ToolMessage, UserMessage
 from .model import Model
 from .router import Router
-from .tool import BaseTool, RunContext
+from .tool import Tool, RunContext
 
 type AgentLoopOutputType = BaseModel | str
 
@@ -30,7 +30,7 @@ def context_to_final_output_task_description(task_description: str) -> str:
 
 async def handle_tool_call[T](
     tool_call: ToolCall,
-    tool: BaseTool,
+    tool: Tool,
     run_ctx: RunContext[T] = None,
 ) -> ToolMessage:
     tool_result = await tool.run(run_ctx, tool_call.function.arguments)
@@ -39,7 +39,7 @@ async def handle_tool_call[T](
 
 async def handle_tools[T](
     tool_calls: Iterable[ToolCall],
-    tools: Iterable[BaseTool],
+    tools: Iterable[Tool],
     run_ctx: RunContext[T] = None,
 ) -> list[ToolMessage]:
     tools_map = {tool.name: tool for tool in tools}
@@ -68,7 +68,7 @@ async def handle_tools[T](
 async def run_agent_tools_loop[DepsT: Any](
     model: Model,
     ctx: Context,
-    tools: Iterable[BaseTool] | None = None,
+    tools: Iterable[Tool] | None = None,
     deps: DepsT = None,
 ) -> None:
     while True:
@@ -89,7 +89,7 @@ async def run_agent_loop[OutputT: AgentLoopOutputType, DepsT: Any](
     router: Router,
     ctx: Context,
     output_type: type[OutputT] = str,
-    tools: Iterable[BaseTool] | None = None,
+    tools: Iterable[Tool] | None = None,
     deps: DepsT = None,
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)

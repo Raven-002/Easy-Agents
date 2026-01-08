@@ -7,7 +7,7 @@ from openai.types.chat import ChatCompletionFunctionToolParam
 from openai.types.shared_params import FunctionDefinition
 from pydantic import BaseModel
 
-__all__ = ["BaseTool", "RunContext"]
+__all__ = ["Tool", "RunContext"]
 
 type ParametersBaseType = BaseModel | str | None
 type ResultsBaseType = BaseModel | str | None
@@ -38,7 +38,7 @@ type ToolRunFunction[
 )
 
 
-class BaseTool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, AppDepsType, DepsType]:
+class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, AppDepsType, DepsType]:
     def __init__(
         self,
         name: str,

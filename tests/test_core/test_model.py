@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from easy_agents.core.context import Context
 from easy_agents.core.model import Model
-from easy_agents.core.tool import BaseTool, RunContext
+from easy_agents.core.tool import Tool, RunContext
 
 
 def get_test_models() -> Iterator[Model]:
@@ -98,7 +98,7 @@ def test_required_tools_irrelevant_not_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = BaseTool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="required")
     print(result)
@@ -124,7 +124,7 @@ def test_required_tools_relevant_not_needed(model: Model) -> None:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
-    final_output_tool = BaseTool(
+    final_output_tool = Tool(
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
@@ -147,7 +147,7 @@ def test_auto_tools_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = BaseTool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
@@ -175,7 +175,7 @@ def test_auto_tools_relevant_not_needed(model: Model) -> None:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
-    final_output_tool = BaseTool(
+    final_output_tool = Tool(
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
@@ -199,7 +199,7 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = BaseTool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
@@ -224,7 +224,7 @@ def test_tools_with_content(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = BaseTool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)

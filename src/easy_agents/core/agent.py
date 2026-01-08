@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from .context import Context, ToolMessage
 from .model import Model
-from .tool import BaseTool
+from .tool import Tool
 
 type AgentLoopInputType = BaseModel | None
 type AgentLoopOutputType = BaseModel | None
@@ -19,7 +19,7 @@ class Agent[InputT: AgentLoopInputType, OutputT: AgentLoopOutputType, DepsT: Any
         self._deps_type = deps_type
         self._model = model
 
-    def _get_tools(self, deps: DepsT) -> list[BaseTool]:
+    def _get_tools(self, deps: DepsT) -> list[Tool]:
         """Get the list of tools to use."""
         raise NotImplementedError
 
@@ -36,7 +36,7 @@ class Agent[InputT: AgentLoopInputType, OutputT: AgentLoopOutputType, DepsT: Any
         raise NotImplementedError
 
     def _handle_tools(
-        self, tool_calls: Iterable[ChatCompletionMessageFunctionToolCallParam], tools: list[BaseTool], deps: DepsT
+        self, tool_calls: Iterable[ChatCompletionMessageFunctionToolCallParam], tools: list[Tool], deps: DepsT
     ) -> list[ToolMessage]:
         """Handle tool calls and return a list of tool messages."""
         raise NotImplementedError

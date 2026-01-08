@@ -7,7 +7,7 @@ from easy_agents.core.agent_loop import run_agent_loop
 from easy_agents.core.context import Context
 from easy_agents.core.model import Model
 from easy_agents.core.router import ModelId, Router
-from easy_agents.core.tool import BaseTool, RunContext
+from easy_agents.core.tool import Tool, RunContext
 
 # For speed reason, use a single model
 simple_models_pool: dict[ModelId, Model] = {
@@ -77,7 +77,7 @@ async def weather_tool_fn(_ctx: RunContext[WeatherReport], _parameters: WeatherQ
     return WeatherResult(temperature_c=4.0)
 
 
-weather_tool = BaseTool(
+weather_tool = Tool(
     name="weather_tool",
     description="get weather in a city",
     run=weather_tool_fn,

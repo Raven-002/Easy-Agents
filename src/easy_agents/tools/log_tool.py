@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
 
-from easy_agents.core.tool import BaseTool
+from easy_agents.core.tool import Tool
 
 type LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -17,7 +17,7 @@ async def _run(_ctx: RunContext[Any], parameters: LogParameters) -> None:
     print(f"[{parameters.log_level}] {parameters.message}", flush=True)
 
 
-class LogTool(BaseTool):
+class LogTool(Tool):
     def __init__(self):
         super().__init__(
             name="log_tool",

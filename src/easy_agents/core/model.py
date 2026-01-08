@@ -11,7 +11,7 @@ from openai.types.shared_params.response_format_json_schema import JSONSchema
 from pydantic import BaseModel
 
 from .context import AssistantMessage, ChatCompletionMessage, ToolCall, ToolCallFunction, UserMessage
-from .tool import BaseTool
+from .tool import Tool
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Model(BaseModel):
     def chat_completion[T: BaseModel | str](
         self,
         messages: Iterable[ChatCompletionMessage],
-        tools: list[BaseTool] | None = None,
+        tools: list[Tool] | None = None,
         tool_choice: ChatCompletionToolChoiceOptionParam = "auto",
         response_format: type[T] = str,
         assistant_name: str = "",

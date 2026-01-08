@@ -7,7 +7,7 @@ import pathspec
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
 
-from easy_agents.core.tool import BaseTool
+from easy_agents.core.tool import Tool
 
 from .deps.project_files_deps import ProjectFilesDeps
 
@@ -137,7 +137,7 @@ async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Param
     return _Results(matches=matches, matches_count=len(matches))
 
 
-class FindTool[T](BaseTool):
+class FindTool[T](Tool):
     def __init__(self, app_deps_type: type[T], extract_path: Callable[[T], ProjectFilesDeps]):
         super().__init__(
             name="find_tool",
