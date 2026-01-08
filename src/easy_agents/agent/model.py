@@ -66,7 +66,6 @@ class Model(BaseModel):
                     strict=True,
                 ),
             )
-            print(response_format_param)
         else:
             assert response_format is str
             response_format_param = ResponseFormatText(type="text")
@@ -92,11 +91,11 @@ class Model(BaseModel):
         for chunk in stream:
             state.handle_chunk(chunk)
 
-            # delta = chunk.choices[0].delta
-            # if delta.content:
-            #     print(delta.content, end="", flush=True)
-            # if delta.tool_calls:
-            #     print(f"\nTool Call Detected: {delta.tool_calls[0].function.name}")
+            delta = chunk.choices[0].delta
+            if delta.content:
+                print(delta.content, end="", flush=True)
+            if delta.tool_calls:
+                print(f"\nTool Call Detected: {delta.tool_calls[0].function.name}")
 
         final = state.get_final_completion()
         msg = final.choices[0].message
