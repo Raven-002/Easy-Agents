@@ -3,8 +3,8 @@
 MIN_PY_VER := "3.12"
 MAIN_PY_VER := "3.14"
 QA_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
-TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
-BUILD_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_qa"'
+TEST_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_tests"'
+BUILD_ENV := 'UV_PROJECT_ENVIRONMENT=".venv_build"'
 MAIN_ENV := 'UV_PROJECT_ENVIRONMENT=".venv"'
 
 # Show available commands
@@ -68,8 +68,12 @@ version:
 # remove all build, test, coverage and Python artifacts
 clean:
 	just clean-build
-	just clean-pyc
+	just clean-cache
 	just clean-test
+
+clean-all:
+    just clean
+    just clean-venvs
 
 # remove build artifacts
 clean-build:
@@ -85,6 +89,16 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
+
+clean-cache:
+    just clean-pyc
+    rm -fr .ruff_cache
+
+clean-venvs:
+    rm -fr .venv
+    rm -fr .venv_qa
+    rm -fr .venv_build
+    rm -fr .venv_tests
 
 # remove test and coverage artifacts
 clean-test:

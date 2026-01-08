@@ -6,9 +6,9 @@ import pytest
 from openai import LengthFinishReasonError
 from pydantic import BaseModel
 
-from easy_agents.agent.context import Context
-from easy_agents.agent.model import Model
-from easy_agents.agent.tool import BaseTool, RunContext
+from easy_agents.core.context import Context
+from easy_agents.core.model import Model
+from easy_agents.core.tool import BaseTool, RunContext
 
 
 def get_test_models() -> Iterator[Model]:

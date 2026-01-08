@@ -78,7 +78,7 @@ class BaseTool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType,
 
         if self._app_deps_type:
             if not isinstance(ctx.deps, self._app_deps_type):
-                raise TypeError("Bad type from agent context.")
+                raise TypeError("Bad type from core context.")
 
         tool_deps = self._deps_extractor(ctx.deps)
 

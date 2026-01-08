@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
 
-from easy_agents.agent.tool import BaseTool
+from easy_agents.core.tool import BaseTool
 
 type LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 

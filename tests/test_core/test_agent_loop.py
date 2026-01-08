@@ -3,11 +3,11 @@
 import pytest
 from pydantic import BaseModel
 
-from easy_agents.agent.agent_loop import run_agent_loop
-from easy_agents.agent.context import Context
-from easy_agents.agent.model import Model
-from easy_agents.agent.router import ModelId, Router
-from easy_agents.agent.tool import BaseTool, RunContext
+from easy_agents.core.agent_loop import run_agent_loop
+from easy_agents.core.context import Context
+from easy_agents.core.model import Model
+from easy_agents.core.router import ModelId, Router
+from easy_agents.core.tool import BaseTool, RunContext
 
 # For speed reason, use a single model
 simple_models_pool: dict[ModelId, Model] = {

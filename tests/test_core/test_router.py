@@ -2,8 +2,8 @@
 
 import pytest
 
-from easy_agents.agent.model import Model
-from easy_agents.agent.router import ModelId, Router
+from easy_agents.core.model import Model
+from easy_agents.core.router import ModelId, Router
 
 available_model_name = "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL"  # Also used for choosing
 unavailable_model_name = "qwen-coder-480-abc123"
@@ -14,7 +14,7 @@ models_pool: dict[ModelId, Model] = {
         api_base="http://localhost:11434/v1",
         api_key="ollama",
         description="A coding model, run at moderate speeds, only good at writing code, and is average+ in all "
-        "programming languages, enough for most tasks.",
+        "programming languages, enough for most tasks. Knows almost only english.",
     ),
     "c-coder": Model(
         model_name=available_model_name,
@@ -103,7 +103,7 @@ def test_route_task_complex_code(router: Router) -> None:
 
 
 def test_route_task_general(router: Router) -> None:
-    model = router.route_task("A fast pace call center agent in english.")
+    model = router.route_task("A fast pace call center core in english.")
     assert (
         model == models_pool["glm-z1-9b"]
         or model == models_pool["qwen3-coder-30B-A3B"]
@@ -112,5 +112,5 @@ def test_route_task_general(router: Router) -> None:
 
 
 def test_route_task_multi_language(router: Router) -> None:
-    model = router.route_task("A call center agent in hebrew and spanish.")
+    model = router.route_task("A call center core in hebrew and spanish.")
     assert model == models_pool["qwen4-multi-language"]

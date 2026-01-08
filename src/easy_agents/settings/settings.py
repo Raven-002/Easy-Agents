@@ -4,7 +4,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-from easy_agents.agent.model import Model
+from easy_agents.core.model import Model
 
 
 class AiExpertise(StrEnum):

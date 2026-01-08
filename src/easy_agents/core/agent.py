@@ -8,9 +8,12 @@ from .context import Context, ToolMessage
 from .model import Model
 from .tool import BaseTool
 
+type AgentLoopInputType = BaseModel | None
+type AgentLoopOutputType = BaseModel | None
 
-class AgentLoop[InputT: type[BaseModel], OutputT: type[BaseModel], DepsT: Any]:
-    def __init__(self, input_type: InputT, output_type: OutputT, deps_type: DepsT, model: Model):
+
+class Agent[InputT: AgentLoopInputType, OutputT: AgentLoopOutputType, DepsT: Any]:
+    def __init__(self, input_type: type[InputT], output_type: type[OutputT], deps_type: type[DepsT], model: Model):
         self._input_type = input_type
         self._output_type = output_type
         self._deps_type = deps_type
@@ -39,7 +42,7 @@ class AgentLoop[InputT: type[BaseModel], OutputT: type[BaseModel], DepsT: Any]:
         raise NotImplementedError
 
     def run(self, input_args: InputT, deps: DepsT) -> OutputT:
-        """Run the agent loop."""
+        """Run the core loop."""
         ctx = self._generate_initial_context(input_args, deps)
         tools = self._get_tools(deps)
 
