@@ -98,7 +98,6 @@ class Router(BaseModel):
         ]
 
         class ModelChoice(BaseModel):
-            reasoning: str = Field("", description="Explanation of the model choice.")
             model_id: str = Field(..., description="ID of the chosen model.")
 
         chosen_model_response = router_model.chat_completion(messages, response_format=ModelChoice)

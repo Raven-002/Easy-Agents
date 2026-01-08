@@ -47,6 +47,7 @@ classifiers = [
 dev = [
     "coverage",  # testing
     "pytest",  # testing
+    "pytest-asyncio",  # testing
     "ruff",  # linting
     "ty", # checking types
     "mypy", # Another type checker

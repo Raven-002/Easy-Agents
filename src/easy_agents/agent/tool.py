@@ -1,5 +1,6 @@
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
+from types import NoneType
 from typing import Any
 
 from openai.types.chat import ChatCompletionFunctionToolParam
@@ -43,15 +44,15 @@ class BaseTool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType,
         name: str,
         description: str,
         run: ToolRunFunction[ParametersType, ResultsType, DepsType],
-        parameters_type: type[ParametersType] = None,
-        results_type: type[ResultsType] = None,
+        parameters_type: type[ParametersType] = NoneType,
+        results_type: type[ResultsType] = NoneType,
         deps_extractor: Callable[[AppDepsType], DepsType] | None = None,
-        deps_type: type[DepsType] = None,
+        deps_type: type[DepsType] = NoneType,
         app_deps_type: type[AppDepsType] = Any,
     ) -> None:
-        if deps_type is not None and deps_extractor is None:
+        if deps_type is not NoneType and deps_extractor is None:
             raise TypeError(f"Missing deps extractor for tool {name}.")
-        if deps_type is None and deps_extractor is not None:
+        if deps_type is NoneType and deps_extractor is not None:
             raise TypeError(f"Missing deps type for tool {name}.")
 
         self._name = name
@@ -88,7 +89,7 @@ class BaseTool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType,
 
     async def run(self, ctx: RunContext[AppDepsType], arguments: str) -> ResultsType:
         parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
-        if self._deps_type is not None:
+        if self._deps_type is not NoneType:
             return await self._run(ctx, self._extract_deps(ctx), parameters)
         return await self._run(ctx, parameters)
 

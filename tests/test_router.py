@@ -45,7 +45,7 @@ models_pool: dict[ModelId, Model] = {
         model_name=available_model_name,
         api_base="http://localhost:11434/v1",
         api_key="ollama",
-        description="A fast model good for deep thinking and analisys",
+        description="A fast model good for deep thinking and analysis",
         thinking=True,
     ),
     "rust-coder": Model(
