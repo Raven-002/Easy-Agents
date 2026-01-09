@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from easy_agents.core.context import Context
 from easy_agents.core.model import Model
-from easy_agents.core.tool import Tool, RunContext
+from easy_agents.core.tool import RunContext, Tool
 
 
 def get_test_models() -> Iterator[Model]:

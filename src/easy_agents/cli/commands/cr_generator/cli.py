@@ -1,8 +1,8 @@
 import typer
 
 from easy_agents.cli.app import app, console
+from easy_agents.config.config import load_settings_from_yaml
 from easy_agents.logger.logging_utils import configure_logging, dlog, status
-from easy_agents.settings.settings import load_settings_from_yaml
 from easy_agents.utils.git_utils.git_diff import git_diff, summerize_diff_files
 from easy_agents.utils.types.code_review import CodeReview, CodeReviewGeneralComment
 
@@ -38,7 +38,7 @@ def cr(
         help="Show a spinner while waiting for the AI model response (default: auto, only in TTY).",
     ),
     settings_file: str = typer.Option(
-        ".easy_agents_config.yml", envvar="EASY_AGENTS_SETTINGS_FILE", help="Path to settings file."
+        ".easy_agents_config.yml", envvar="EASY_AGENTS_SETTINGS_FILE", help="Path to config file."
     ),
 ) -> None:
     """Perform code review for a given branch."""

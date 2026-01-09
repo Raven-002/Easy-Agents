@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .context import Context, ToolCall, ToolMessage, UserMessage
 from .model import Model
 from .router import Router
-from .tool import Tool, RunContext
+from .tool import RunContext, Tool
 
 type AgentLoopOutputType = BaseModel | str
 
@@ -71,6 +71,7 @@ async def run_agent_tools_loop[DepsT: Any](
     tools: Iterable[Tool] | None = None,
     deps: DepsT = None,
 ) -> None:
+    run_context = RunContext(deps=deps, ctx=ctx)
     while True:
         reply = model.chat_completion(ctx.messages, tools)
         ctx.messages.append(reply.message)
@@ -82,7 +83,7 @@ async def run_agent_tools_loop[DepsT: Any](
         if not tools:
             ctx.messages.append(UserMessage(content="There are no tools available. Do not use any tool call."))
 
-        ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, deps))
+        ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, run_context))
 
 
 async def run_agent_loop[OutputT: AgentLoopOutputType, DepsT: Any](

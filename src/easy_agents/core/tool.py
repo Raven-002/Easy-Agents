@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 __all__ = ["Tool", "RunContext"]
 
+from .context import Context
+
 type ParametersBaseType = BaseModel | str | None
 type ResultsBaseType = BaseModel | str | None
 
@@ -16,6 +18,7 @@ type ResultsBaseType = BaseModel | str | None
 @dataclass
 class RunContext[T]:
     deps: T
+    ctx: Context
 
 
 type ToolRunFunctionWithContext[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType] = Callable[
@@ -64,6 +67,13 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
         self._deps_type = deps_type
         self._app_deps_type = app_deps_type
 
+        if issubclass(self._parameters_type, BaseModel):
+            self._parameters_shema = self._parameters_type.model_json_schema()
+        elif self._parameters_type is str:
+            self._parameters_shema = {"type": "string"}
+        else:
+            self._parameters_shema = {}
+
     @property
     def name(self) -> str:
         return self._name
@@ -88,7 +98,12 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
         return tool_deps
 
     async def run(self, ctx: RunContext[AppDepsType], arguments: str) -> ResultsType:
-        parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
+        if issubclass(self._parameters_type, BaseModel):
+            parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
+        elif self._parameters_type is str:
+            parameters = arguments
+        else:
+            parameters = None
         if self._deps_type is not NoneType:
             return await self._run(ctx, self._extract_deps(ctx), parameters)
         return await self._run(ctx, parameters)
@@ -99,7 +114,7 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
             function=FunctionDefinition(
                 name=self.name,
                 description=self.description,
-                parameters=self._parameters_type.model_json_schema() if self._parameters_type else {},
+                parameters=self._parameters_shema,
                 strict=True,
             ),
         )

@@ -11,8 +11,8 @@ from rich.table import Table
 from easy_agents.agents.code_analysis.code_context import CodeDir, CodeProjectContext
 from easy_agents.agents.code_analysis.symbol_analyzer import CodeAnalysisResults, create_symbol_analyzer
 from easy_agents.cli.app import app, console
+from easy_agents.config.config import get_settings, load_settings_from_yaml
 from easy_agents.logger.logging_utils import configure_logging
-from easy_agents.settings.settings import get_settings, load_settings_from_yaml
 from easy_agents.utils.agents_runner import run_agent
 
 
@@ -60,7 +60,7 @@ def analyze_symbol(
         help="Show a spinner while waiting for the AI model response (default: auto, only in TTY).",
     ),
     settings_file: str = typer.Option(
-        ".easy_agents_config.yml", envvar="EASY_AGENTS_SETTINGS_FILE", help="Path to settings file."
+        ".easy_agents_config.yml", envvar="EASY_AGENTS_SETTINGS_FILE", help="Path to config file."
     ),
 ) -> None:
     """Perform code review for a given branch."""

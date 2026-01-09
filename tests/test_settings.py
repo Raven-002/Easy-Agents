@@ -3,7 +3,7 @@ from typing import Any
 
 from pytest import fixture, raises
 
-from easy_agents.settings.settings import (
+from easy_agents.config.config import (
     AiExpertise,
     Model,
     Settings,
@@ -13,7 +13,7 @@ from easy_agents.settings.settings import (
     reset_settings,
 )
 
-"""Tests for the settings module."""
+"""Tests for the config module."""
 
 
 @fixture

@@ -1,57 +1,37 @@
-from collections.abc import Iterable
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from types import NoneType
 from typing import Any
 
-from openai.types.chat import ChatCompletionMessageFunctionToolCallParam
 from pydantic import BaseModel
 
-from .context import Context, ToolMessage
-from .model import Model
+from .agent_loop import AgentLoopOutputType, run_agent_loop
+from .context import Context
+from .router import Router
 from .tool import Tool
 
-type AgentLoopInputType = BaseModel | None
-type AgentLoopOutputType = BaseModel | None
+type AgentInputType = BaseModel | None | str
+type AgentOutputType = AgentLoopOutputType
+type ContextFactoryFunctionType[InputT: AgentInputType, DepsT: Any] = Callable[[InputT, DepsT], Context]
 
 
-class Agent[InputT: AgentLoopInputType, OutputT: AgentLoopOutputType, DepsT: Any]:
-    def __init__(self, input_type: type[InputT], output_type: type[OutputT], deps_type: type[DepsT], model: Model):
-        self._input_type = input_type
-        self._output_type = output_type
-        self._deps_type = deps_type
-        self._model = model
+@dataclass()
+class SimpleContextFactory:
+    system_prompt: str | None = None
 
-    def _get_tools(self, deps: DepsT) -> list[Tool]:
-        """Get the list of tools to use."""
-        raise NotImplementedError
+    def __call__(self, input_args: str, _deps: Any) -> Context:
+        return Context.simple(input_args, system_prompt=self.system_prompt)
 
-    def _generate_initial_context(self, input_args: InputT, deps: DepsT) -> Context:
-        """Generate the initial context based on the input arguments."""
-        raise NotImplementedError
 
-    def _get_response_format_schema(self) -> str:
-        """Get the schema of the response format."""
-        raise NotImplementedError
+@dataclass
+class Agent[InputT: AgentInputType, OutputT: AgentOutputType, DepsT: Any]:
+    router: Router
+    context_factory: ContextFactoryFunctionType[InputT, DepsT]
+    input_type: type[InputT] = str
+    output_type: type[OutputT] = str
+    deps_type: type[DepsT] = NoneType
+    tools: list[Tool] = field(default_factory=list)
 
-    def _generate_final_output(self, ctx: Context) -> OutputT:
-        """Generate a reply based on the current context and tools."""
-        raise NotImplementedError
-
-    def _handle_tools(
-        self, tool_calls: Iterable[ChatCompletionMessageFunctionToolCallParam], tools: list[Tool], deps: DepsT
-    ) -> list[ToolMessage]:
-        """Handle tool calls and return a list of tool messages."""
-        raise NotImplementedError
-
-    def run(self, input_args: InputT, deps: DepsT) -> OutputT:
-        """Run the core loop."""
-        ctx = self._generate_initial_context(input_args, deps)
-        tools = self._get_tools(deps)
-
-        while True:
-            reply = self._model.chat_completion(ctx.messages, tools)
-            if not reply["tool_calls"]:
-                break
-
-            tool_messages = self._handle_tools(reply["tool_calls"], tools, deps)
-            ctx.messages.extend(tool_messages)
-
-        return self._generate_final_output(ctx)
+    async def run(self, input_args: InputT, deps: DepsT) -> OutputT:
+        ctx = self.context_factory(input_args, deps)
+        return await run_agent_loop(self.router, ctx, self.output_type, self.tools, deps=deps)
