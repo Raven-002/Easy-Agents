@@ -28,7 +28,7 @@ complex_models_pool: dict[ModelId, Model] = {
         model_name="glm-z1-9b",
         api_base="http://localhost:11434/v1",
         api_key="ollama",
-        description="A fast model good for deep thinking and analysis",
+        description="A fast model good for deep thinking and analysis.",
         thinking=True,
     ),
 }

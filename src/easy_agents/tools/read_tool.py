@@ -1,9 +1,6 @@
-from typing import Any
-
 from pydantic import BaseModel, Field
-from pydantic_ai import RunContext, Tool
 
-from .function_tool import create_function_tool
+from easy_agents.core.tool import RunContext, Tool
 
 
 class _Parameters(BaseModel):
@@ -30,14 +27,14 @@ class _Results(BaseModel):
     lines_count: int = Field(description="The number of lines read.")
 
 
-async def _run(_ctx: RunContext[Any], parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext, parameters: _Parameters) -> _Results:
     with open(parameters.file_path) as file:
         all_lines: list[_Line] = [_Line(line_number=i, line=content) for i, content in enumerate(file.readlines())]
     lines = all_lines[parameters.start_line : parameters.end_line - 1]
     return _Results(lines=lines, lines_count=len(lines))
 
 
-read_tool: Tool[Any] = create_function_tool(
+read_tool = Tool(
     name="read_tool",
     description="Read the content of a file.",
     run=_run,

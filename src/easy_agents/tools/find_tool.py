@@ -1,5 +1,4 @@
 import re
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +8,7 @@ from pydantic_ai import RunContext
 
 from easy_agents.core.tool import Tool
 
-from .deps.project_files_deps import ProjectFilesDeps
+from .deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
 
 class _Parameters(BaseModel):
@@ -137,18 +136,14 @@ async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Param
     return _Results(matches=matches, matches_count=len(matches))
 
 
-class FindTool[T](Tool):
-    def __init__(self, app_deps_type: type[T], extract_path: Callable[[T], ProjectFilesDeps]):
-        super().__init__(
-            name="find_tool",
-            description=(
-                "Search for text patterns in files using regular expressions. Can search single files or recursively "
-                "through directories."
-            ),
-            run=_run,
-            deps_type=ProjectFilesDeps,
-            parameters_type=_Parameters,
-            results_type=_Results,
-            deps_extractor=extract_path,
-            app_deps_type=app_deps_type,
-        )
+find_tool = Tool[_Parameters, _Results, ProjectFilesDeps](
+    name="find_tool",
+    description=(
+        "Search for text patterns in files using regular expressions. Can search single files or recursively "
+        "through directories."
+    ),
+    run=_run,
+    deps_type=project_files_deps_type,
+    parameters_type=_Parameters,
+    results_type=_Results,
+)

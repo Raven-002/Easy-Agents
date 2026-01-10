@@ -11,17 +11,15 @@ from easy_agents.core.tool import ToolDependency, ToolDepsRegistry
 @pytest.mark.asyncio
 async def test_tool_less_agent(simple_router) -> None:
     agent = Agent(
-        router=simple_router,
         context_factory=SimpleContextFactory("You are a helpful assistant. Give short and concise answers."),
     )
-    result = await agent.run("What is the official capital of Israel?")
+    result = await agent.run("What is the official capital of Israel?", simple_router)
     assert "Jerusalem" in result
 
 
 @pytest.mark.asyncio
 async def test_weather_agent(simple_router) -> None:
     agent = Agent(
-        simple_router,
         context_factory=SimpleContextFactory(
             "You are a helpful weather assistant. "
             "Think step by step before making any tool calls. "
@@ -32,6 +30,7 @@ async def test_weather_agent(simple_router) -> None:
     )
     result = await agent.run(
         "What is the weather in the user's country's capital?",
+        simple_router,
         deps=ToolDepsRegistry.from_map({user_info_dep_type: "35F living in Tel Aviv"}),
     )
     assert result.temperature == 4
@@ -42,7 +41,6 @@ async def test_weather_agent(simple_router) -> None:
 @pytest.mark.asyncio
 async def test_agent_with_missing_deps_for_tool(simple_router) -> None:
     agent = Agent(
-        simple_router,
         context_factory=SimpleContextFactory(
             "You are a helpful weather assistant. "
             "Think step by step before making any tool calls. "
@@ -55,6 +53,7 @@ async def test_agent_with_missing_deps_for_tool(simple_router) -> None:
     with pytest.raises(KeyError):
         await agent.run(
             "What is the weather in the user's country's capital?",
+            simple_router,
             deps=ToolDepsRegistry.from_map(
                 {ToolDependency(key="bad_key", value_type=user_info_dep_type.value_type): "35F living in Tel Aviv"}
             ),
@@ -64,7 +63,6 @@ async def test_agent_with_missing_deps_for_tool(simple_router) -> None:
 @pytest.mark.asyncio
 async def test_agent_with_wrong_deps_for_tool(simple_router) -> None:
     agent = Agent(
-        simple_router,
         context_factory=SimpleContextFactory(
             "You are a helpful weather assistant. "
             "Think step by step before making any tool calls. "
@@ -77,5 +75,6 @@ async def test_agent_with_wrong_deps_for_tool(simple_router) -> None:
     with pytest.raises(TypeError):
         await agent.run(
             "What is the weather in the user's country's capital?",
+            simple_router,
             deps=ToolDepsRegistry.from_map({ToolDependency(key=user_info_dep_type.key, value_type=int): 0}),
         )

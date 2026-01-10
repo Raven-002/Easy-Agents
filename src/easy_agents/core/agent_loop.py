@@ -33,7 +33,10 @@ async def handle_tool_call(
     tool: Tool,
     run_ctx: RunContext = None,
 ) -> ToolMessage:
-    tool_result = await tool.run(run_ctx, tool_call.function.arguments)
+    try:
+        tool_result = await tool.run(run_ctx, tool_call.function.arguments)
+    except Exception as e:
+        tool_result = str(f"Tool failed with error: {e}.")
     return ToolMessage(content=str(tool_result), tool_call_id=tool_call.id, name=tool.name)
 
 

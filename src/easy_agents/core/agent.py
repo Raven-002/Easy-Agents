@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any
 
 from pydantic import BaseModel
 
@@ -18,13 +17,12 @@ type ContextFactoryFunctionType[InputT: AgentInputType] = Callable[[InputT, Tool
 class SimpleContextFactory:
     system_prompt: str | None = None
 
-    def __call__(self, input_args: str, _deps: Any) -> Context:
+    def __call__(self, input_args: str, _deps: ToolDepsRegistry) -> Context:
         return Context.simple(input_args, system_prompt=self.system_prompt)
 
 
 @dataclass
 class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
-    router: Router
     context_factory: ContextFactoryFunctionType[InputT]
     input_type: type[InputT] = str
     output_type: type[OutputT] = str
@@ -34,9 +32,9 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
         for tool in self.tools:
             tool.verify_deps(deps)
 
-    async def run(self, input_args: InputT, deps: ToolDepsRegistry | None = None) -> OutputT:
+    async def run(self, input_args: InputT, router: Router, deps: ToolDepsRegistry | None = None) -> OutputT:
         if deps is None:
             deps = {}
         self._verify_deps(deps)
         ctx = self.context_factory(input_args, deps)
-        return await run_agent_loop(self.router, ctx, self.output_type, self.tools, deps=deps)
+        return await run_agent_loop(router, ctx, self.output_type, self.tools, deps=deps)
