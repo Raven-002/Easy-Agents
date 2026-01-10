@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from collections.abc import Iterator
-from typing import Any
 
 import pytest
 from openai import LengthFinishReasonError
@@ -32,7 +31,7 @@ def get_test_models() -> Iterator[Model]:
         description="",
         thinking=True,
     )
-    # NOTE: glm-4-9b non thinking has problems passing the tests, so it is removed.
+    # NOTE: glm-4-9b non-thinking has problems passing the tests, so it is removed.
 
 
 @pytest.fixture(params=get_test_models(), scope="module")
@@ -94,7 +93,7 @@ def test_required_tools_irrelevant_not_needed(model: Model) -> None:
     class WeatherToolResponse(BaseModel):
         weather: str
 
-    async def weather_tool_fn(_ctx: RunContext[Any], params: WeatherToolParams) -> WeatherToolResponse:
+    async def weather_tool_fn(_ctx: RunContext, params: WeatherToolParams) -> WeatherToolResponse:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
@@ -120,7 +119,7 @@ def test_required_tools_relevant_not_needed(model: Model) -> None:
     class FinalOutputToolResponse(BaseModel):
         is_ok: bool
 
-    async def greeting(_ctx: RunContext[Any], params: FinalOutputToolParams) -> FinalOutputToolResponse:
+    async def greeting(_ctx: RunContext, params: FinalOutputToolParams) -> FinalOutputToolResponse:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
@@ -143,7 +142,7 @@ def test_auto_tools_needed(model: Model) -> None:
     class WeatherToolResponse(BaseModel):
         weather: str
 
-    async def weather_tool_fn(_ctx: RunContext[Any], params: WeatherToolParams) -> WeatherToolResponse:
+    async def weather_tool_fn(_ctx: RunContext, params: WeatherToolParams) -> WeatherToolResponse:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
@@ -151,7 +150,7 @@ def test_auto_tools_needed(model: Model) -> None:
 
     result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    # Some models will give output/reasoning, while some dont. The only important part is that we get a tool call.
+    # Some models will give output/reasoning, while some don't. The only important part is that we get a tool call.
     assert len(list(result.message.tool_calls)) == 1
     assert result.message.tool_calls[0].function.name == "weather_tool"
     response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
@@ -171,7 +170,7 @@ def test_auto_tools_relevant_not_needed(model: Model) -> None:
     class FinalOutputToolResponse(BaseModel):
         is_ok: bool
 
-    async def greeting(_ctx: RunContext[Any], params: FinalOutputToolParams) -> FinalOutputToolResponse:
+    async def greeting(_ctx: RunContext, params: FinalOutputToolParams) -> FinalOutputToolResponse:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
@@ -195,7 +194,7 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
     class WeatherToolResponse(BaseModel):
         weather: str
 
-    async def weather_tool_fn(_ctx: RunContext[Any], params: WeatherToolParams) -> WeatherToolResponse:
+    async def weather_tool_fn(_ctx: RunContext, params: WeatherToolParams) -> WeatherToolResponse:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
@@ -220,7 +219,7 @@ def test_tools_with_content(model: Model) -> None:
     class WeatherToolResponse(BaseModel):
         weather: str
 
-    async def weather_tool_fn(_ctx: RunContext[Any], params: WeatherToolParams) -> WeatherToolResponse:
+    async def weather_tool_fn(_ctx: RunContext, params: WeatherToolParams) -> WeatherToolResponse:
         print(params)
         return WeatherToolResponse(weather="sunny")
 

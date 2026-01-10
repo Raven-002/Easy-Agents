@@ -53,6 +53,9 @@ build:
 setup_dev_venv:
     {{MAIN_ENV}} uv sync --python={{MAIN_PY_VER}} --extra dev
 
+setup_dev_venv_old:
+    {{MAIN_ENV}} uv sync --python={{MIN_PY_VER}} --extra dev
+
 VERSION := `grep -m1 '^version' pyproject.toml | sed -E 's/version = "(.*)"/\1/'`
 
 # Print the current version of the project

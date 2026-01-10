@@ -17,7 +17,7 @@ easy_agents = ["templates/**/*.j2"]
 name = "easy-agents"
 version = "0.1.0"
 dependencies = [
-  "pydantic_ai",
+  "pydantic-ai",
   "gitpython",
   "pathspec",
   "pyyaml",
@@ -60,11 +60,15 @@ homepage = "https://github.com/Raven-002/easy_agents"
 bugs = "https://github.com/Raven-002/easy_agents/issues"
 changelog = "https://github.com/Raven-002/easy_agents/blob/master/changelog.md"
 
-[project.scripts]
-easy_agents = "easy_agents.cli:cli_app"
+#[project.scripts]
+#easy_agents = "easy_agents.cli:cli_app"
 
 
 # --- Tools --------------------------------------------------------------------
+[tool.pytest.ini_options]
+pythonpath = [".", "tests"]
+addopts = "--import-mode=importlib"
+
 [tool.ty]
 # All rules are enabled as "error" by default; no need to specify unless overriding.
 # Example override: relax a rule for the entire project (uncomment if needed).
