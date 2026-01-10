@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from types import NoneType
 from typing import Any
 
 from pydantic import BaseModel
@@ -12,7 +11,7 @@ from .tool import Tool
 
 type AgentInputType = BaseModel | None | str
 type AgentOutputType = AgentLoopOutputType
-type ContextFactoryFunctionType[InputT: AgentInputType, DepsT: Any] = Callable[[InputT, DepsT], Context]
+type ContextFactoryFunctionType[InputT: AgentInputType] = Callable[[InputT, dict[str, Any]], Context]
 
 
 @dataclass()
@@ -24,14 +23,20 @@ class SimpleContextFactory:
 
 
 @dataclass
-class Agent[InputT: AgentInputType, OutputT: AgentOutputType, DepsT: Any]:
+class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
     router: Router
-    context_factory: ContextFactoryFunctionType[InputT, DepsT]
+    context_factory: ContextFactoryFunctionType[InputT]
     input_type: type[InputT] = str
     output_type: type[OutputT] = str
-    deps_type: type[DepsT] = NoneType
     tools: list[Tool] = field(default_factory=list)
 
-    async def run(self, input_args: InputT, deps: DepsT) -> OutputT:
+    def _verify_deps(self, deps: dict[str, Any]) -> None:
+        for tool in self.tools:
+            tool.verify_deps(deps)
+
+    async def run(self, input_args: InputT, deps: dict[str, Any] | None = None) -> OutputT:
+        if deps is None:
+            deps = {}
+        self._verify_deps(deps)
         ctx = self.context_factory(input_args, deps)
         return await run_agent_loop(self.router, ctx, self.output_type, self.tools, deps=deps)

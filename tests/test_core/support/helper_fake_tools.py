@@ -28,6 +28,5 @@ get_user_info_from_str_deps_tool = Tool(
     run=user_info_from_deps_tool_fn,
     results_type=str,
     deps_type=str,
-    app_deps_type=str,
-    deps_extractor=lambda deps: deps,
+    deps_entry="user_info",
 )

@@ -16,20 +16,20 @@ type ResultsBaseType = BaseModel | str | None
 
 
 @dataclass
-class RunContext[T]:
-    deps: T
+class RunContext:
+    deps: dict[str, Any]
     ctx: Context
 
 
 type ToolRunFunctionWithContext[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType] = Callable[
-    [RunContext[Any], ParametersType], Coroutine[Any, Any, ResultsType]
+    [RunContext, ParametersType], Coroutine[Any, Any, ResultsType]
 ]
 
 type ToolRunFunctionWithDepsAndContext[
     ParametersType: ParametersBaseType,
     ResultsType: ResultsBaseType,
     DepsType: Any,
-] = Callable[[RunContext[Any], DepsType, ParametersType], Coroutine[Any, Any, ResultsType]]
+] = Callable[[RunContext, DepsType, ParametersType], Coroutine[Any, Any, ResultsType]]
 
 type ToolRunFunction[
     ParametersType: ParametersBaseType,
@@ -41,7 +41,7 @@ type ToolRunFunction[
 )
 
 
-class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, AppDepsType, DepsType]:
+class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, DepsType]:
     def __init__(
         self,
         name: str,
@@ -49,13 +49,12 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
         run: ToolRunFunction[ParametersType, ResultsType, DepsType],
         parameters_type: type[ParametersType] = NoneType,
         results_type: type[ResultsType] = NoneType,
-        deps_extractor: Callable[[AppDepsType], DepsType] | None = None,
         deps_type: type[DepsType] = NoneType,
-        app_deps_type: type[AppDepsType] = Any,
+        deps_entry: str | None = None,
     ) -> None:
-        if deps_type is not NoneType and deps_extractor is None:
+        if deps_type is not NoneType and deps_entry is None:
             raise TypeError(f"Missing deps extractor for tool {name}.")
-        if deps_type is NoneType and deps_extractor is not None:
+        if deps_type is NoneType and deps_entry is not None:
             raise TypeError(f"Missing deps type for tool {name}.")
 
         self._name = name
@@ -63,9 +62,8 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
         self._run = run
         self._parameters_type = parameters_type
         self._results_type = results_type
-        self._deps_extractor = deps_extractor
         self._deps_type = deps_type
-        self._app_deps_type = app_deps_type
+        self._deps_entry = deps_entry
 
         if issubclass(self._parameters_type, BaseModel):
             self._parameters_shema = self._parameters_type.model_json_schema()
@@ -82,22 +80,23 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, App
     def description(self) -> str:
         return self._description
 
-    def _extract_deps(self, ctx: RunContext[AppDepsType]) -> DepsType:
-        assert self._deps_type
-        assert self._deps_extractor
-
-        if self._app_deps_type:
-            if not isinstance(ctx.deps, self._app_deps_type):
-                raise TypeError("Bad type from core context.")
-
-        tool_deps = self._deps_extractor(ctx.deps)
-
-        if not isinstance(tool_deps, self._deps_type):
+    def verify_deps(self, deps: dict[str, Any]) -> None:
+        if self._deps_entry is None:
+            return
+        if self._deps_entry not in deps:
+            raise KeyError(f'Deps entry "{self._deps_entry}" for tool "{self.name}" not found in context.')
+        if not isinstance(deps[self._deps_entry], self._deps_type):
             raise TypeError("Bad type returned from tool context extractor.")
 
-        return tool_deps
+    def _extract_deps(self, ctx: RunContext) -> DepsType:
+        assert self._deps_type
+        assert self._deps_entry
 
-    async def run(self, ctx: RunContext[AppDepsType], arguments: str) -> ResultsType:
+        self.verify_deps(ctx.deps)
+
+        return ctx.deps[self._deps_entry]
+
+    async def run(self, ctx: RunContext, arguments: str) -> ResultsType:
         if issubclass(self._parameters_type, BaseModel):
             parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
         elif self._parameters_type is str:
