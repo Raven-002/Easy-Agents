@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .context import Context, ToolCall, ToolMessage, UserMessage
 from .model import Model
 from .router import Router
-from .tool import RunContext, Tool
+from .tool import RunContext, Tool, ToolDepsRegistry
 
 type AgentLoopOutputType = BaseModel | str
 
@@ -28,19 +28,19 @@ def context_to_final_output_task_description(task_description: str) -> str:
     )
 
 
-async def handle_tool_call[T](
+async def handle_tool_call(
     tool_call: ToolCall,
     tool: Tool,
-    run_ctx: RunContext[T] = None,
+    run_ctx: RunContext = None,
 ) -> ToolMessage:
     tool_result = await tool.run(run_ctx, tool_call.function.arguments)
     return ToolMessage(content=str(tool_result), tool_call_id=tool_call.id, name=tool.name)
 
 
-async def handle_tools[T](
+async def handle_tools(
     tool_calls: Iterable[ToolCall],
     tools: Iterable[Tool],
-    run_ctx: RunContext[T] = None,
+    run_ctx: RunContext = None,
 ) -> list[ToolMessage]:
     tools_map = {tool.name: tool for tool in tools}
     tool_messages: list[ToolMessage] = []
@@ -65,37 +65,38 @@ async def handle_tools[T](
     return tool_messages
 
 
-async def run_agent_tools_loop[DepsT: Any](
+async def run_agent_tools_loop(
     model: Model,
-    ctx: Context,
+    run_context: RunContext,
     tools: Iterable[Tool] | None = None,
-    deps: DepsT = None,
 ) -> None:
-    run_context = RunContext(deps=deps, ctx=ctx)
     while True:
-        reply = model.chat_completion(ctx.messages, tools)
-        ctx.messages.append(reply.message)
+        reply = model.chat_completion(run_context.ctx.messages, tools)
+        run_context.ctx.messages.append(reply.message)
 
         # When there are no tool calls left, the tools loop is finished.
         if not reply.message.tool_calls:
             return
 
         if not tools:
-            ctx.messages.append(UserMessage(content="There are no tools available. Do not use any tool call."))
+            run_context.ctx.messages.append(
+                UserMessage(content="There are no tools available. Do not use any tool call.")
+            )
 
-        ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, run_context))
+        run_context.ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, run_context))
 
 
-async def run_agent_loop[OutputT: AgentLoopOutputType, DepsT: Any](
+async def run_agent_loop[OutputT: AgentLoopOutputType](
     router: Router,
     ctx: Context,
     output_type: type[OutputT] = str,
     tools: Iterable[Tool] | None = None,
-    deps: DepsT = None,
+    deps: ToolDepsRegistry | None = None,
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)
     main_model = router.route_task(task_descriptions)
-    await run_agent_tools_loop(main_model, ctx, tools, deps)
+    run_context = RunContext(deps=deps or ToolDepsRegistry.empty(), ctx=ctx)
+    await run_agent_tools_loop(main_model, run_context, tools)
     final_output_model = router.route_task(context_to_final_output_task_description(task_descriptions))
     ctx.messages.append(UserMessage(content="Provide the final output based on the conversation history."))
     output_message = final_output_model.chat_completion(ctx.messages, response_format=output_type)

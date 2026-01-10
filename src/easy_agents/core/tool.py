@@ -1,5 +1,5 @@
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import NoneType
 from typing import Any
 
@@ -7,17 +7,56 @@ from openai.types.chat import ChatCompletionFunctionToolParam
 from openai.types.shared_params import FunctionDefinition
 from pydantic import BaseModel
 
-__all__ = ["Tool", "RunContext"]
-
 from .context import Context
 
 type ParametersBaseType = BaseModel | str | None
 type ResultsBaseType = BaseModel | str | None
 
 
+@dataclass(frozen=True)
+class ToolDependency[T]:
+    key: str
+    value_type: type[T]
+
+    def to_entry(self, value: T) -> "ToolDepEntry[T]":
+        return ToolDepEntry(type=self, value=value)
+
+
+NoneToolDep = ToolDependency[None](key="None", value_type=NoneType)
+
+
+@dataclass(frozen=True)
+class ToolDepEntry[T]:
+    type: ToolDependency[T]
+    value: T
+
+    def __post_init__(self):
+        if not isinstance(self.value, self.type.value_type):
+            raise TypeError(
+                f"Bad type for dependency {self.type.key}: expected {self.type.value_type}, got {type(self.value)}"
+            )
+
+
+@dataclass
+class ToolDepsRegistry:
+    list: list[ToolDepEntry[Any]]
+    map: dict[str, Any] = field(init=False, default_factory=dict)
+
+    def __post_init__(self):
+        self.map: dict[str, Any] = {d.type.key: d.value for d in self.list}
+
+    @staticmethod
+    def empty() -> "ToolDepsRegistry":
+        return ToolDepsRegistry(list=[])
+
+    @staticmethod
+    def from_map(deps: dict[ToolDependency[Any], Any]) -> "ToolDepsRegistry":
+        return ToolDepsRegistry([ToolDepEntry(type=k, value=v) for k, v in deps.items()])
+
+
 @dataclass
 class RunContext:
-    deps: dict[str, Any]
+    deps: ToolDepsRegistry
     ctx: Context
 
 
@@ -49,21 +88,14 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         run: ToolRunFunction[ParametersType, ResultsType, DepsType],
         parameters_type: type[ParametersType] = NoneType,
         results_type: type[ResultsType] = NoneType,
-        deps_type: type[DepsType] = NoneType,
-        deps_entry: str | None = None,
+        deps_type: ToolDependency[DepsType] = NoneToolDep,
     ) -> None:
-        if deps_type is not NoneType and deps_entry is None:
-            raise TypeError(f"Missing deps extractor for tool {name}.")
-        if deps_type is NoneType and deps_entry is not None:
-            raise TypeError(f"Missing deps type for tool {name}.")
-
         self._name = name
         self._description = description
         self._run = run
         self._parameters_type = parameters_type
         self._results_type = results_type
         self._deps_type = deps_type
-        self._deps_entry = deps_entry
 
         if issubclass(self._parameters_type, BaseModel):
             self._parameters_shema = self._parameters_type.model_json_schema()
@@ -80,21 +112,18 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
     def description(self) -> str:
         return self._description
 
-    def verify_deps(self, deps: dict[str, Any]) -> None:
-        if self._deps_entry is None:
+    def verify_deps(self, deps: ToolDepsRegistry) -> None:
+        if self._deps_type is NoneToolDep:
             return
-        if self._deps_entry not in deps:
-            raise KeyError(f'Deps entry "{self._deps_entry}" for tool "{self.name}" not found in context.')
-        if not isinstance(deps[self._deps_entry], self._deps_type):
+        if self._deps_type.key not in deps.map:
+            raise KeyError(f'Deps entry "{self._deps_type.key}" for tool "{self.name}" not found in context.')
+        if not isinstance(deps.map[self._deps_type.key], self._deps_type.value_type):
             raise TypeError("Bad type returned from tool context extractor.")
 
     def _extract_deps(self, ctx: RunContext) -> DepsType:
-        assert self._deps_type
-        assert self._deps_entry
-
+        assert self._deps_type is not NoneToolDep
         self.verify_deps(ctx.deps)
-
-        return ctx.deps[self._deps_entry]
+        return ctx.deps.map[self._deps_type.key]
 
     async def run(self, ctx: RunContext, arguments: str) -> ResultsType:
         if issubclass(self._parameters_type, BaseModel):
@@ -103,7 +132,7 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
             parameters = arguments
         else:
             parameters = None
-        if self._deps_type is not NoneType:
+        if self._deps_type is not NoneToolDep:
             return await self._run(ctx, self._extract_deps(ctx), parameters)
         return await self._run(ctx, parameters)
 

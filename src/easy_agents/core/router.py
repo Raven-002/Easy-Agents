@@ -44,11 +44,7 @@ class ModelRegistry(BaseModel):
 
 
 class Router(BaseModel):
-    # The pool of available worker models
     models_pool: dict[ModelId, Model]
-
-    # Naming this 'router_pool' or 'classifiers' clarifies
-    # that these are the "brains" making the choice.
     router_pool: list[ModelId] = Field(..., description="Priority list of model IDs used to route the task.")
 
     @staticmethod

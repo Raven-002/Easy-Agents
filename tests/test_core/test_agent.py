@@ -2,9 +2,10 @@
 
 import pytest
 from test_core.support.common_base_models import WeatherReport
-from test_core.support.helper_fake_tools import get_user_info_from_str_deps_tool, weather_tool
+from test_core.support.helper_fake_tools import get_user_info_from_str_deps_tool, user_info_dep_type, weather_tool
 
 from easy_agents.core.agent import Agent, SimpleContextFactory
+from easy_agents.core.tool import ToolDependency, ToolDepsRegistry
 
 
 @pytest.mark.asyncio
@@ -30,7 +31,8 @@ async def test_weather_agent(simple_router) -> None:
         tools=[weather_tool, get_user_info_from_str_deps_tool],
     )
     result = await agent.run(
-        "What is the weather in the user's country's capital?", deps={"user_info": "35F living in Tel Aviv"}
+        "What is the weather in the user's country's capital?",
+        deps=ToolDepsRegistry.from_map({user_info_dep_type: "35F living in Tel Aviv"}),
     )
     assert result.temperature == 4
     assert result.country.lower() == "israel"
@@ -52,7 +54,10 @@ async def test_agent_with_missing_deps_for_tool(simple_router) -> None:
 
     with pytest.raises(KeyError):
         await agent.run(
-            "What is the weather in the user's country's capital?", deps={"not_user_info": "35F living in Tel Aviv"}
+            "What is the weather in the user's country's capital?",
+            deps=ToolDepsRegistry.from_map(
+                {ToolDependency(key="bad_key", value_type=user_info_dep_type.value_type): "35F living in Tel Aviv"}
+            ),
         )
 
 
@@ -70,4 +75,7 @@ async def test_agent_with_wrong_deps_for_tool(simple_router) -> None:
     )
 
     with pytest.raises(TypeError):
-        await agent.run("What is the weather in the user's country's capital?", deps={"user_info": 0})
+        await agent.run(
+            "What is the weather in the user's country's capital?",
+            deps=ToolDepsRegistry.from_map({ToolDependency(key=user_info_dep_type.key, value_type=int): 0}),
+        )

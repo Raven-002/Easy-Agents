@@ -7,11 +7,11 @@ from pydantic import BaseModel
 from .agent_loop import AgentLoopOutputType, run_agent_loop
 from .context import Context
 from .router import Router
-from .tool import Tool
+from .tool import Tool, ToolDepsRegistry
 
 type AgentInputType = BaseModel | None | str
 type AgentOutputType = AgentLoopOutputType
-type ContextFactoryFunctionType[InputT: AgentInputType] = Callable[[InputT, dict[str, Any]], Context]
+type ContextFactoryFunctionType[InputT: AgentInputType] = Callable[[InputT, ToolDepsRegistry], Context]
 
 
 @dataclass()
@@ -30,11 +30,11 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
     output_type: type[OutputT] = str
     tools: list[Tool] = field(default_factory=list)
 
-    def _verify_deps(self, deps: dict[str, Any]) -> None:
+    def _verify_deps(self, deps: ToolDepsRegistry) -> None:
         for tool in self.tools:
             tool.verify_deps(deps)
 
-    async def run(self, input_args: InputT, deps: dict[str, Any] | None = None) -> OutputT:
+    async def run(self, input_args: InputT, deps: ToolDepsRegistry | None = None) -> OutputT:
         if deps is None:
             deps = {}
         self._verify_deps(deps)
