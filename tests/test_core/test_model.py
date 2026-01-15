@@ -5,6 +5,7 @@ import pytest
 from openai import LengthFinishReasonError
 from pydantic import BaseModel
 
+from easy_agents.core import AssistantResponse
 from easy_agents.core.context import Context
 from easy_agents.core.model import Model
 from easy_agents.core.tool import RunContext, Tool
@@ -35,13 +36,15 @@ def get_test_models() -> Iterator[Model]:
 
 
 @pytest.fixture(params=get_test_models(), scope="module")
-def model(request) -> Model:
-    return request.param
+def model(request: pytest.FixtureRequest) -> Model:
+    requested_model = request.param
+    assert isinstance(requested_model, Model)
+    return requested_model
 
 
 def test_model(model: Model) -> None:
     context = Context.simple("hi")
-    result = model.chat_completion(context.messages)
+    result: AssistantResponse[str] = model.chat_completion(context.messages)
     print(result)
 
 
@@ -62,7 +65,7 @@ def test_response_format(model: Model) -> None:
         response_format=ResponseFormat,
     )
     print(result)
-    isinstance(result.message.content, ResponseFormat)
+    isinstance(result.message.content, ResponseFormat)  # pyright: ignore [reportUnnecessaryIsInstance]
     assert len(result.message.content.languages) > 0
 
 
@@ -97,12 +100,16 @@ def test_required_tools_irrelevant_not_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool[WeatherToolParams, WeatherToolResponse, None](
+        "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
+    )
 
-    result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="required")
+    result: AssistantResponse[str] = model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="required"
+    )
     print(result)
     assert result.message.content == ""
-    assert len(result.message.tool_calls) > 0
+    assert result.message.tool_calls
 
 
 @pytest.mark.skip(reason="Not supported yet")
@@ -123,14 +130,16 @@ def test_required_tools_relevant_not_needed(model: Model) -> None:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
-    final_output_tool = Tool(
+    final_output_tool = Tool[FinalOutputToolParams, FinalOutputToolResponse, None](
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
-    result = model.chat_completion(context.messages, tools=[final_output_tool], tool_choice="required")
+    result: AssistantResponse[str] = model.chat_completion(
+        context.messages, tools=[final_output_tool], tool_choice="required"
+    )
     print(result)
     assert result.message.content == ""
-    assert len(result.message.tool_calls) > 0
+    assert result.message.tool_calls
 
 
 def test_auto_tools_needed(model: Model) -> None:
@@ -146,12 +155,15 @@ def test_auto_tools_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool[WeatherToolParams, WeatherToolResponse, None](
+        "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
+    )
 
-    result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
     # Some models will give output/reasoning, while some don't. The only important part is that we get a tool call.
-    assert len(list(result.message.tool_calls)) == 1
+    assert result.message.tool_calls
+    assert len(result.message.tool_calls) == 1
     assert result.message.tool_calls[0].function.name == "weather_tool"
     response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
     assert response == WeatherToolParams(city="TelAviv")
@@ -174,11 +186,13 @@ def test_auto_tools_relevant_not_needed(model: Model) -> None:
         print(params)
         return FinalOutputToolResponse(is_ok=True)
 
-    final_output_tool = Tool(
+    final_output_tool = Tool[FinalOutputToolParams, FinalOutputToolResponse, None](
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
-    result = model.chat_completion(context.messages, tools=[final_output_tool], tool_choice="auto")
+    result: AssistantResponse[str] = model.chat_completion(
+        context.messages, tools=[final_output_tool], tool_choice="auto"
+    )
     print(result)
     assert len(result.message.content) > 0
     # The model is not deterministic about using a tool call.
@@ -198,12 +212,14 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool[WeatherToolParams, WeatherToolResponse, None](
+        "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
+    )
 
-    result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
     assert len(result.message.content) > 0
-    assert len(list(result.message.tool_calls)) == 0
+    assert result.message.tool_calls in [None, []]
 
 
 def test_tools_with_content(model: Model) -> None:
@@ -223,12 +239,15 @@ def test_tools_with_content(model: Model) -> None:
         print(params)
         return WeatherToolResponse(weather="sunny")
 
-    weather_tool = Tool("weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse)
+    weather_tool = Tool[WeatherToolParams, WeatherToolResponse, None](
+        "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
+    )
 
-    result = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
     assert len(result.message.content) > 0 or len(result.message.reasoning or []) > 0
-    assert len(list(result.message.tool_calls)) == 1
+    assert result.message.tool_calls
+    assert len(result.message.tool_calls) == 1
     assert result.message.tool_calls[0].function.name == "weather_tool"
     response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
     assert response == WeatherToolParams(city="Jerusalem")

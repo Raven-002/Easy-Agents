@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from easy_agents.core import Agent, Context, ToolDepsRegistry
@@ -32,7 +34,7 @@ class SymbolAnalysis(BaseModel):
 
 
 def symbol_analyzer_context_creator(input_args: SymbolAnalysisRequest, deps: ToolDepsRegistry) -> Context:
-    project_files: ProjectFilesDeps | None = deps.map.get("project_files")
+    project_files: ProjectFilesDeps | None | Any = deps.deps_map.get("project_files")
     if project_files is None or not isinstance(project_files, ProjectFilesDeps):
         raise ValueError("Project files dependency is required for symbol analyzer.")
     return Context.simple(

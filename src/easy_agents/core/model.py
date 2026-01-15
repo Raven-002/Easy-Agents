@@ -3,19 +3,19 @@ from dataclasses import dataclass
 from typing import Literal
 
 import openai
-from openai import APIError, LengthFinishReasonError
+from openai import APIError, LengthFinishReasonError, Stream
 from openai.lib.streaming.chat import ChatCompletionStreamState
 from openai.types.chat import ChatCompletionToolChoiceOptionParam
 from openai.types.shared_params import ResponseFormatJSONSchema, ResponseFormatText
 from openai.types.shared_params.response_format_json_schema import JSONSchema
 from pydantic import BaseModel
 
-from .context import AssistantMessage, ChatCompletionMessage, ToolCall, ToolCallFunction, UserMessage
-from .tool import Tool
+from .context import AnyChatCompletionMessage, AssistantMessage, UserMessage
+from .tool import ToolAny
 
 
 @dataclass
-class AssistantResponse[T]:
+class AssistantResponse[T: str | BaseModel]:
     message: AssistantMessage[T]
     finish_reason: Literal["stop", "length", "tool_calls", "content_filter", "function_call"]
 
@@ -45,10 +45,10 @@ class Model(BaseModel):
 
     def chat_completion[T: BaseModel | str](
         self,
-        messages: Iterable[ChatCompletionMessage],
-        tools: list[Tool] | None = None,
+        messages: Iterable[AnyChatCompletionMessage],
+        tools: list[ToolAny] | None = None,
         tool_choice: ChatCompletionToolChoiceOptionParam = "auto",
-        response_format: type[T] = str,
+        response_format: type[T] = str,  # type: ignore
         assistant_name: str = "",
         temperature: float = 0.0,
         token_limit: int = 0,
@@ -57,7 +57,7 @@ class Model(BaseModel):
 
         if issubclass(response_format, BaseModel):
             schema = response_format.model_json_schema()
-            response_format_param = ResponseFormatJSONSchema(
+            response_format_param: ResponseFormatJSONSchema | ResponseFormatText = ResponseFormatJSONSchema(
                 type="json_schema",
                 json_schema=JSONSchema(
                     name=schema.get("title", response_format.__name__),
@@ -73,20 +73,23 @@ class Model(BaseModel):
         client = self.create_openai_client()
 
         state = ChatCompletionStreamState(
-            input_tools=openai.NOT_GIVEN,
-            response_format=openai.NOT_GIVEN,
+            input_tools=openai.NOT_GIVEN,  # type: ignore
+            response_format=openai.NOT_GIVEN,  # type: ignore
         )
 
         stream = client.chat.completions.create(
             model=self.model_name,
-            messages=[m.model_dump() for m in messages],
+            messages=[m.to_openai_param() for m in messages],
             tools=tools_param,
             tool_choice=tool_choice,
             response_format=response_format_param,
             temperature=temperature,
             stream=True,
-            max_tokens=token_limit if token_limit > 0 else openai.NOT_GIVEN,
+            max_tokens=token_limit if token_limit > 0 else None,
         )
+
+        if not isinstance(stream, Stream):  # pyright: ignore [reportUnnecessaryIsInstance]
+            raise TypeError(f"Expected Stream, got {type(stream)}")
 
         for chunk in stream:
             state.handle_chunk(chunk)
@@ -95,35 +98,14 @@ class Model(BaseModel):
             if delta.content:
                 print(delta.content, end="", flush=True)
             if delta.tool_calls:
-                print(f"\nTool Call Detected: {delta.tool_calls[0].function.name}")
+                for tool_call in delta.tool_calls:
+                    if tool_call.function and tool_call.function.name:
+                        print(f"\nTool Call: {tool_call.function.name}")
 
         final = state.get_final_completion()
         msg = final.choices[0].message
 
-        if issubclass(response_format, BaseModel):
-            assert isinstance(msg.content, str)
-            content: T = response_format.model_validate_json(msg.content, strict=True, extra="forbid")
-        else:
-            content: str = msg.content or ""
-
-        reasoning: str | None = msg.reasoning if hasattr(msg, "reasoning") else None
-
         return AssistantResponse[T](
-            message=AssistantMessage(
-                role="assistant",
-                name=assistant_name,
-                content=content,
-                reasoning=reasoning,
-                tool_calls=[
-                    ToolCall(
-                        id=t.id,
-                        type=t.type,
-                        function=ToolCallFunction(name=t.function.name, arguments=t.function.arguments),
-                    )
-                    for t in msg.tool_calls
-                ]
-                if msg.tool_calls
-                else [],
-            ),
+            message=AssistantMessage.from_openai_parsed_message(msg, response_format, assistant_name),
             finish_reason=final.choices[0].finish_reason,
         )

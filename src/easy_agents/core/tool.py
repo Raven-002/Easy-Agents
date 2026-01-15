@@ -4,7 +4,7 @@ from types import NoneType
 from typing import Any
 
 from openai.types.chat import ChatCompletionFunctionToolParam
-from openai.types.shared_params import FunctionDefinition
+from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 
 from .context import Context
@@ -30,7 +30,7 @@ class ToolDepEntry[T]:
     type: ToolDependency[T]
     value: T
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.value, self.type.value_type):
             raise TypeError(
                 f"Bad type for dependency {self.type.key}: expected {self.type.value_type}, got {type(self.value)}"
@@ -40,10 +40,10 @@ class ToolDepEntry[T]:
 @dataclass
 class ToolDepsRegistry:
     list: list[ToolDepEntry[Any]]
-    map: dict[str, Any] = field(init=False, default_factory=dict)
+    deps_map: dict[str, Any] = field(init=False, default_factory=dict)
 
-    def __post_init__(self):
-        self.map: dict[str, Any] = {d.type.key: d.value for d in self.list}
+    def __post_init__(self) -> None:
+        self.deps_map = {d.type.key: d.value for d in self.list}
 
     @staticmethod
     def empty() -> "ToolDepsRegistry":
@@ -86,9 +86,9 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         name: str,
         description: str,
         run: ToolRunFunction[ParametersType, ResultsType, DepsType],
-        parameters_type: type[ParametersType] = NoneType,
-        results_type: type[ResultsType] = NoneType,
-        deps_type: ToolDependency[DepsType] = NoneToolDep,
+        parameters_type: type[ParametersType] = NoneType,  # type: ignore
+        results_type: type[ResultsType] = NoneType,  # type: ignore
+        deps_type: ToolDependency[DepsType] = NoneToolDep,  # type: ignore
     ) -> None:
         self._name = name
         self._description = description
@@ -97,6 +97,7 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         self._results_type = results_type
         self._deps_type = deps_type
 
+        self._parameters_shema: FunctionParameters
         if issubclass(self._parameters_type, BaseModel):
             self._parameters_shema = self._parameters_type.model_json_schema()
         elif self._parameters_type is str:
@@ -115,26 +116,33 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
     def verify_deps(self, deps: ToolDepsRegistry) -> None:
         if self._deps_type is NoneToolDep:
             return
-        if self._deps_type.key not in deps.map:
+        if self._deps_type.key not in deps.deps_map:
             raise KeyError(f'Deps entry "{self._deps_type.key}" for tool "{self.name}" not found in context.')
-        if not isinstance(deps.map[self._deps_type.key], self._deps_type.value_type):
+        if not isinstance(deps.deps_map[self._deps_type.key], self._deps_type.value_type):
             raise TypeError("Bad type returned from tool context extractor.")
 
     def _extract_deps(self, ctx: RunContext) -> DepsType:
         assert self._deps_type is not NoneToolDep
         self.verify_deps(ctx.deps)
-        return ctx.deps.map[self._deps_type.key]
+        deps = ctx.deps.deps_map[self._deps_type.key]
+        if not isinstance(deps, self._deps_type.value_type):
+            raise TypeError("Bad type returned from tool context extractor.")
+        return deps
 
     async def run(self, ctx: RunContext, arguments: str) -> ResultsType:
+        parameters: ParametersType
         if issubclass(self._parameters_type, BaseModel):
             parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
         elif self._parameters_type is str:
-            parameters = arguments
+            assert isinstance(arguments, self._parameters_type)
+            parameters = arguments  # pyright: ignore [reportAssignmentType]
+        elif self._parameters_type is NoneType:
+            parameters = None  # type: ignore
         else:
-            parameters = None
+            raise TypeError(f"Unsupported parameters type: {self._parameters_type}")
         if self._deps_type is not NoneToolDep:
-            return await self._run(ctx, self._extract_deps(ctx), parameters)
-        return await self._run(ctx, parameters)
+            return await self._run(ctx, self._extract_deps(ctx), parameters)  # type: ignore
+        return await self._run(ctx, parameters)  # type: ignore
 
     def get_json_schema(self) -> ChatCompletionFunctionToolParam:
         return ChatCompletionFunctionToolParam(
@@ -146,3 +154,6 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
                 strict=True,
             ),
         )
+
+
+type ToolAny = Tool[Any, Any, Any]

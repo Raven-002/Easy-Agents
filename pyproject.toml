@@ -89,6 +89,8 @@ select = [
 
 [tool.mypy]
 strict = true
+explicit_package_bases = true
+mypy_path = "src"
 exclude = "build|dist|.venv.*|__pycache__"
 disable_error_code = [
   "import-untyped",

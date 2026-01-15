@@ -72,7 +72,7 @@ models_pool: dict[ModelId, Model] = {
 
 
 @pytest.fixture(scope="module")
-def router(request) -> Router:
+def router(request: pytest.FixtureRequest) -> Router:
     return Router(
         models_pool=models_pool,
         router_pool=["qwen3-coder-30B-A3B"],

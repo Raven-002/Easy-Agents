@@ -5,7 +5,7 @@ from tests.test_core.support.helper_routers import complex_models_pool, simple_m
 
 
 @pytest.fixture(scope="module")
-def simple_router(request) -> Router:
+def simple_router(request: pytest.FixtureRequest) -> Router:
     return Router(
         models_pool=simple_models_pool,
         router_pool=["qwen3-instruct"],
@@ -13,7 +13,7 @@ def simple_router(request) -> Router:
 
 
 @pytest.fixture(scope="module")
-def complex_router(request) -> Router:
+def complex_router(request: pytest.FixtureRequest) -> Router:
     return Router(
         models_pool=complex_models_pool,
         router_pool=["qwen3-instruct"],

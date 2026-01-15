@@ -1,12 +1,10 @@
 import re
 from pathlib import Path
-from typing import Any
 
 import pathspec
 from pydantic import BaseModel, Field
-from pydantic_ai import RunContext
 
-from easy_agents.core.tool import Tool
+from easy_agents.core.tool import RunContext, Tool
 
 from .deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
@@ -45,7 +43,7 @@ def is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
         return True  # Treat unreadable files as binary/skip
 
 
-async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters) -> _Results:
     """Search for text patterns in files using regular expressions."""
     matches: list[_Match] = []
 
@@ -127,7 +125,7 @@ async def _run(_ctx: RunContext[Any], deps: ProjectFilesDeps, parameters: _Param
                     )
 
                     matches.append(
-                        _Match(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group(0))
+                        _Match(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group())
                     )
         except (OSError, UnicodeDecodeError):
             # Skip files that can't be read

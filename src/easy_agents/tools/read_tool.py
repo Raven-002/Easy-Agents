@@ -34,7 +34,7 @@ async def _run(_ctx: RunContext, parameters: _Parameters) -> _Results:
     return _Results(lines=lines, lines_count=len(lines))
 
 
-read_tool = Tool(
+read_tool = Tool[_Parameters, _Results, None](
     name="read_tool",
     description="Read the content of a file.",
     run=_run,

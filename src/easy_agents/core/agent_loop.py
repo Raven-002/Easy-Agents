@@ -5,9 +5,9 @@ from typing import Any
 from pydantic import BaseModel
 
 from .context import Context, ToolCall, ToolMessage, UserMessage
-from .model import Model
+from .model import AssistantResponse, Model
 from .router import Router
-from .tool import RunContext, Tool, ToolDepsRegistry
+from .tool import RunContext, ToolAny, ToolDepsRegistry
 
 type AgentLoopOutputType = BaseModel | str
 
@@ -30,8 +30,8 @@ def context_to_final_output_task_description(task_description: str) -> str:
 
 async def handle_tool_call(
     tool_call: ToolCall,
-    tool: Tool,
-    run_ctx: RunContext = None,
+    tool: ToolAny,
+    run_ctx: RunContext,
 ) -> ToolMessage:
     try:
         tool_result = await tool.run(run_ctx, tool_call.function.arguments)
@@ -43,8 +43,8 @@ async def handle_tool_call(
 
 async def handle_tools(
     tool_calls: Iterable[ToolCall],
-    tools: Iterable[Tool],
-    run_ctx: RunContext = None,
+    tools: list[ToolAny],
+    run_ctx: RunContext,
 ) -> list[ToolMessage]:
     tools_map = {tool.name: tool for tool in tools}
     tool_messages: list[ToolMessage] = []
@@ -60,6 +60,7 @@ async def handle_tools(
                     name=tool_call.function.name,
                 )
             )
+            continue
         tool_call_tasks.append(handle_tool_call(tool_call, tool, run_ctx))
 
     for task_future in asyncio.as_completed(tool_call_tasks):
@@ -72,10 +73,10 @@ async def handle_tools(
 async def run_agent_tools_loop(
     model: Model,
     run_context: RunContext,
-    tools: Iterable[Tool] | None = None,
+    tools: list[ToolAny] | None = None,
 ) -> None:
     while True:
-        reply = model.chat_completion(run_context.ctx.messages, tools)
+        reply: AssistantResponse[str] = model.chat_completion(run_context.ctx.messages, tools)
         run_context.ctx.messages.append(reply.message)
 
         # When there are no tool calls left, the tools loop is finished.
@@ -86,6 +87,7 @@ async def run_agent_tools_loop(
             run_context.ctx.messages.append(
                 UserMessage(content="There are no tools available. Do not use any tool call.")
             )
+            continue
 
         run_context.ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, run_context))
 
@@ -93,8 +95,8 @@ async def run_agent_tools_loop(
 async def run_agent_loop[OutputT: AgentLoopOutputType](
     router: Router,
     ctx: Context,
-    output_type: type[OutputT] = str,
-    tools: Iterable[Tool] | None = None,
+    output_type: type[OutputT] = str,  # type: ignore
+    tools: list[ToolAny] | None = None,
     deps: ToolDepsRegistry | None = None,
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)

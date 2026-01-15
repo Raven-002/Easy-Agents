@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .context import SystemMessage, UserMessage
+from .context import AnyChatCompletionMessage, SystemMessage, UserMessage
 from .model import Model
 
 type ModelId = str
@@ -88,7 +88,7 @@ class Router(BaseModel):
         # TODO: Support no good model, identifying unavailable chosen model.
         router_model = self.get_active_router()
         models_registry = self.get_models_descriptions_and_status()
-        messages = [
+        messages: list[AnyChatCompletionMessage] = [
             SystemMessage(content=routing_guidelines),
             UserMessage(content=f"Model Pool:\n{models_registry}\n\n Task Description:\n{task_description}"),
         ]

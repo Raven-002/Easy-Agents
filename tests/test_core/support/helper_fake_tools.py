@@ -7,7 +7,7 @@ async def weather_tool_fn(_ctx: RunContext, _parameters: WeatherQuery) -> Weathe
     return WeatherResult(temperature_c=4.0)
 
 
-weather_tool = Tool(
+weather_tool = Tool[WeatherQuery, WeatherResult, None](
     name="weather_tool",
     description="get weather in a city",
     run=weather_tool_fn,
