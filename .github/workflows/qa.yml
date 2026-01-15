@@ -1,4 +1,4 @@
-# This workflow run QA checks on the code
+# This workflow runs QA checks on the code
 
 name: Run qa on the code
 
