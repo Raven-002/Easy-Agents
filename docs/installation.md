@@ -16,7 +16,7 @@ pip install easy-agents
 
 ## From source
 
-The source files for easy-agents can be downloaded from the [Github repo](https://github.com/Raven-002/easy_agents).
+The source files for easy-agents can be downloaded from the [GitHub repo](https://github.com/Raven-002/easy_agents).
 
 You can either clone the public repository:
 

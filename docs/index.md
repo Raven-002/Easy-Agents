@@ -1,4 +1,4 @@
-# Welcome to easy-agents's documentation!
+# Welcome to easy-agents documentation!
 
 ## Contents
 
