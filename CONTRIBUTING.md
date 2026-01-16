@@ -8,7 +8,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs at https://github.com/Raven-002/ai_cr/issues.
+Report bugs at https://github.com/Raven-002/easy_agents/issues.
 
 If you are reporting a bug, please include:
 
@@ -26,11 +26,11 @@ Look through the GitHub issues for features. Anything tagged with "enhancement" 
 
 ### Write Documentation
 
-ai-cr could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
+easy-agents could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
 
 ### Submit Feedback
 
-The best way to send feedback is to file an issue at https://github.com/Raven-002/ai_cr/issues.
+The best way to send feedback is to file an issue at https://github.com/Raven-002/easy_agents/issues.
 
 If you are proposing a feature:
 
@@ -40,13 +40,13 @@ If you are proposing a feature:
 
 ## Get Started!
 
-Ready to contribute? Here's how to set up `ai_cr` for local development.
+Ready to contribute? Here's how to set up `easy_agents` for local development.
 
-1. Fork the `ai_cr` repo on GitHub.
+1. Fork the `easy_agents` repo on GitHub.
 2. Clone your fork locally:
 
    ```sh
-   git clone git@github.com:your_name_here/ai_cr.git
+   git clone git@github.com:your_name_here/easy_agents.git
    ```
 
 3. Install your local copy into a virtualenv. This is how you set up your fork for local development:
@@ -97,7 +97,7 @@ Before you submit a pull request, check that it meets these guidelines:
 To run a subset of tests:
 
 ```sh
-pytest tests.test_ai_cr
+pytest tests.test_easy_agents
 ```
 
 ## Deploying

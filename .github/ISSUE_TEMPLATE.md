@@ -1,4 +1,4 @@
-* ai-cr version:
+* easy-agents version:
 * Python version:
 * Operating System:
 

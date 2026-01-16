@@ -2,37 +2,37 @@
 
 ## Stable release
 
-To install ai-cr, run this command in your terminal:
+To install easy-agents, run this command in your terminal:
 
 ```sh
-uv add ai-cr
+uv add easy-agents
 ```
 
 Or if you prefer to use `pip`:
 
 ```sh
-pip install ai-cr
+pip install easy-agents
 ```
 
 ## From source
 
-The source files for ai-cr can be downloaded from the [Github repo](https://github.com/Raven-002/ai_cr).
+The source files for easy-agents can be downloaded from the [GitHub repo](https://github.com/Raven-002/easy_agents).
 
 You can either clone the public repository:
 
 ```sh
-git clone git://github.com/Raven-002/ai_cr
+git clone git://github.com/Raven-002/easy_agents
 ```
 
-Or download the [tarball](https://github.com/Raven-002/ai_cr/tarball/master):
+Or download the [tarball](https://github.com/Raven-002/easy_agents/tarball/master):
 
 ```sh
-curl -OJL https://github.com/Raven-002/ai_cr/tarball/master
+curl -OJL https://github.com/Raven-002/easy_agents/tarball/master
 ```
 
 Once you have a copy of the source, you can install it with:
 
 ```sh
-cd ai_cr
+cd easy_agents
 uv pip install .
 ```

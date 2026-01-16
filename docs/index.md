@@ -1,4 +1,4 @@
-# Welcome to ai-cr's documentation!
+# Welcome to easy-agents documentation!
 
 ## Contents
 

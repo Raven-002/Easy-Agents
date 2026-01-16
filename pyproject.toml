@@ -1,52 +1,73 @@
+# --- Build System -------------------------------------------------------------
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+easy_agents = ["templates/**/*.j2"]
+
+# --- Project ------------------------------------------------------------------
 [project]
-name = "ai-cr"
+name = "easy-agents"
 version = "0.1.0"
-description = "CR ai agent"
+dependencies = [
+  "pydantic-ai",
+  "gitpython",
+  "pathspec",
+  "pyyaml",
+  "rich",
+  "typer",
+  "jinja2",
+]
+requires-python = ">= 3.12"
+description = "Easy Agents"
 readme = "README.md"
+license = "MIT"
 authors = [
   {name = "Raven", email = "152022920+Raven-002@users.noreply.github.com"}
 ]
 maintainers = [
   {name = "Raven", email = "152022920+Raven-002@users.noreply.github.com"}
 ]
-# https://pypi.org/classifiers/
 classifiers = [
   "Development Status :: 1 - Planning",
   "Environment :: Console",
-
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Quality Assurance",
-
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
 ]
-license = "MIT"
-dependencies = [
-  "gitpython>=3.1.45",
-  "ollama>=0.6.1",
-  "typer",
-]
-requires-python = ">= 3.10"
 
 [project.optional-dependencies]
 dev = [
     "coverage",  # testing
     "pytest",  # testing
+    "pytest-asyncio",  # testing
     "ruff",  # linting
     "ty", # checking types
+    "mypy", # Another type checker
+    "basedpyright", # Another type checker/linter
     "ipdb", # debugging
 ]
 
 [project.urls]
-bugs = "https://github.com/Raven-002/ai_cr/issues"
-changelog = "https://github.com/Raven-002/ai_cr/blob/master/changelog.md"
-homepage = "https://github.com/Raven-002/ai_cr"
+homepage = "https://github.com/Raven-002/easy_agents"
+bugs = "https://github.com/Raven-002/easy_agents/issues"
+changelog = "https://github.com/Raven-002/easy_agents/blob/master/changelog.md"
 
-[project.scripts]
-ai_cr = "ai_cr.cli:app"
+#[project.scripts]
+#easy_agents = "easy_agents.cli:cli_app"
+
+
+# --- Tools --------------------------------------------------------------------
+[tool.pytest.ini_options]
+pythonpath = [".", "tests"]
+addopts = "--import-mode=importlib"
 
 [tool.ty]
 # All rules are enabled as "error" by default; no need to specify unless overriding.
@@ -64,6 +85,34 @@ select = [
     "I",   # isort
     "B",   # flake8-bugbear
     "UP",  # pyupgrade
+]
+
+[tool.mypy]
+strict = true
+explicit_package_bases = true
+mypy_path = "src"
+exclude = "build|dist|.venv.*|__pycache__"
+disable_error_code = [
+  "import-untyped",
+  "unused-ignore"
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = [
+  "no-untyped-def"
+]
+
+[tool.basedpyright]
+# Strict type checking
+typeCheckingMode = "strict"
+reportMissingTypeStubs=false
+# Exclude build/dist/venv artifacts
+exclude = [
+    "build",
+    "dist",
+    ".venv*",
+    "**/__pycache__"
 ]
 
 [tool.uv]
