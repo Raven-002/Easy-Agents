@@ -17,7 +17,8 @@ easy_agents = ["templates/**/*.j2"]
 name = "easy-agents"
 version = "0.1.0"
 dependencies = [
-  "pydantic-ai",
+  "litellm",
+  "pydantic",
   "gitpython",
   "pathspec",
   "pyyaml",
