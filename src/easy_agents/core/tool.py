@@ -3,8 +3,6 @@ from dataclasses import dataclass, field
 from types import NoneType
 from typing import Any
 
-from openai.types.chat import ChatCompletionFunctionToolParam
-from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 
 from .context import Context
@@ -81,6 +79,9 @@ type ToolRunFunction[
 
 
 class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, DepsType]:
+    class StringParameter(BaseModel):
+        value: str
+
     def __init__(
         self,
         name: str,
@@ -97,13 +98,13 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         self._results_type = results_type
         self._deps_type = deps_type
 
-        self._parameters_shema: FunctionParameters
+        self._parameters_shema: dict[str, Any] = {}
         if issubclass(self._parameters_type, BaseModel):
             self._parameters_shema = self._parameters_type.model_json_schema()
         elif self._parameters_type is str:
-            self._parameters_shema = {"type": "string"}
+            self._parameters_shema = self.StringParameter.model_json_schema()
         else:
-            self._parameters_shema = {}
+            self._parameters_shema = {"type": "object", "properties": {}}
 
     @property
     def name(self) -> str:
@@ -134,8 +135,9 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         if issubclass(self._parameters_type, BaseModel):
             parameters = self._parameters_type.model_validate_json(arguments, strict=True, extra="forbid")
         elif self._parameters_type is str:
-            assert isinstance(arguments, self._parameters_type)
-            parameters = arguments  # pyright: ignore [reportAssignmentType]
+            parameters_object = self.StringParameter.model_validate_json(arguments, strict=True, extra="forbid")
+            assert isinstance(parameters_object.value, self._parameters_type)
+            parameters = parameters_object.value  # pyright: ignore [reportAssignmentType]
         elif self._parameters_type is NoneType:
             parameters = None  # type: ignore
         else:
@@ -144,16 +146,16 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
             return await self._run(ctx, self._extract_deps(ctx), parameters)  # type: ignore
         return await self._run(ctx, parameters)  # type: ignore
 
-    def get_json_schema(self) -> ChatCompletionFunctionToolParam:
-        return ChatCompletionFunctionToolParam(
-            type="function",
-            function=FunctionDefinition(
-                name=self.name,
-                description=self.description,
-                parameters=self._parameters_shema,
-                strict=True,
-            ),
-        )
+    def get_json_schema(self) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self._parameters_shema,
+                "strict": True,
+            },
+        }
 
 
 type ToolAny = Tool[Any, Any, Any]
