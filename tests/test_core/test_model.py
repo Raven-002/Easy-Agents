@@ -2,7 +2,6 @@
 from collections.abc import Iterator
 
 import pytest
-from openai import LengthFinishReasonError
 from pydantic import BaseModel
 
 from easy_agents.core import AssistantResponse
@@ -76,14 +75,9 @@ def test_response_format_irrelevant(model: Model) -> None:
     class ResponseFormat(BaseModel):
         languages: list[str]
 
-    try:
-        result = model.chat_completion(context.messages, response_format=ResponseFormat, token_limit=100)
-        print(result)
-        assert len(result.message.content.languages) > 0
-    except LengthFinishReasonError:
-        # The model may get stuck in a loop in this test, which happens because it follows the format, so there is a
-        # token limit that is allowed to be exceeded in the test and does not fail it.
-        pass
+    result = model.chat_completion(context.messages, response_format=ResponseFormat, token_limit=100)
+    print(result)
+    assert len(result.message.content.languages) > 0
 
 
 @pytest.mark.skip(reason="Not supported yet")
