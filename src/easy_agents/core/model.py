@@ -44,7 +44,7 @@ class Model(BaseModel):
         try:
             self.chat_completion([UserMessage(content="do not think. reply yes")], tools=[], token_limit=1)
             return True
-        except litellm.exceptions.APIError, litellm.exceptions.APIConnectionError:
+        except (litellm.exceptions.APIError, litellm.exceptions.APIConnectionError):
             # If there is an API, it is not available.
             return False
         except Exception as e:
