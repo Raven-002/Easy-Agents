@@ -17,4 +17,4 @@ async def test_agent(complex_router: Router, pytestconfig: pytest.Config) -> Non
             {project_files_deps_type: ProjectFilesDeps(project_root=str(pytestconfig.rootpath))}
         ),
     )
-    print(result.brief)
+    print(result)
