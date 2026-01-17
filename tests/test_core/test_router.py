@@ -64,10 +64,13 @@ models_pool: dict[ModelId, Model] = {
 
 @pytest.fixture(scope="module")
 def router(request: pytest.FixtureRequest) -> Router:
-    return Router(
+    router = Router(
         models_pool=models_pool,
         router_pool=["qwen3-coder-30B-A3B"],
     )
+    if not router.models_pool[router.router_pool[0]].is_available():
+        pytest.skip("Skipping router because it is not available.")
+    return router
 
 
 def test_route_task_python_code(router: Router) -> None:

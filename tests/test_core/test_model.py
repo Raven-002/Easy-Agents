@@ -39,7 +39,9 @@ def get_test_models() -> Iterator[Model]:
 
 @pytest.fixture(params=get_test_models(), scope="module")
 def model(request: pytest.FixtureRequest) -> Model:
-    requested_model = request.param
+    requested_model: Model = request.param
+    if not requested_model.is_available():
+        pytest.skip("Skipping model because it is not available.")
     assert isinstance(requested_model, Model)
     return requested_model
 

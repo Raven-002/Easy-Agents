@@ -30,7 +30,9 @@ class _Results(BaseModel):
 async def _run(_ctx: RunContext, parameters: _Parameters) -> _Results:
     with open(parameters.file_path) as file:
         all_lines: list[_Line] = [_Line(line_number=i, line=content) for i, content in enumerate(file.readlines())]
-    lines = all_lines[parameters.start_line : parameters.end_line - 1]
+    if parameters.end_line == 0:
+        parameters.end_line = len(all_lines)
+    lines = all_lines[parameters.start_line : parameters.end_line]
     return _Results(lines=lines, lines_count=len(lines))
 
 
