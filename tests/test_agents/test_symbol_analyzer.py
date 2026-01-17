@@ -9,10 +9,12 @@ from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps, project_
 
 
 @pytest.mark.asyncio
-async def test_agent(complex_router: Router) -> None:
+async def test_agent(complex_router: Router, pytestconfig: pytest.Config) -> None:
     result = await symbol_analyzer.run(
         SymbolAnalysisRequest(symbol_name="Agent"),
         complex_router,
-        deps=ToolDepsRegistry.from_map({project_files_deps_type: ProjectFilesDeps(project_root=".")}),
+        deps=ToolDepsRegistry.from_map(
+            {project_files_deps_type: ProjectFilesDeps(project_root=str(pytestconfig.rootpath))}
+        ),
     )
     print(result.brief)
