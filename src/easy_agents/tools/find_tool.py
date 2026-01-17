@@ -73,7 +73,7 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters
         if gitignore_path.exists():
             try:
                 with open(gitignore_path, encoding="utf-8") as file:
-                    spec = pathspec.PathSpec.from_lines("gitwildmatch", file)
+                    spec = pathspec.PathSpec.from_lines("gitignore", file)
             except Exception:
                 # spec = None
                 raise
