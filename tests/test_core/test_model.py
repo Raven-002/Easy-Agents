@@ -2,33 +2,35 @@
 from collections.abc import Iterator
 
 import pytest
-from openai import LengthFinishReasonError
 from pydantic import BaseModel
 
 from easy_agents.core import AssistantResponse
 from easy_agents.core.context import Context
-from easy_agents.core.model import Model
+from easy_agents.core.model import Model, ModelTokenLimitExceededError
 from easy_agents.core.tool import RunContext, Tool
 
 
 def get_test_models() -> Iterator[Model]:
     yield Model(
+        model_provider="ollama_chat",
         model_name="hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL",
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
+        # api_base="http://localhost:11434/v1",
+        # api_key="ollama",
         description="",
     )
     yield Model(
+        model_provider="ollama_chat",
         model_name="qwen3:14b",
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
+        # api_base="http://localhost:11434/v1",
+        # api_key="ollama",
         description="",
         thinking=True,
     )
     yield Model(
+        model_provider="ollama_chat",
         model_name="glm-z1-9b",  # Based on "hf.co/unsloth/GLM-Z1-9B-0414-GGUF:Q6_K_XL"
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
+        # api_base="http://localhost:11434/v1",
+        # api_key="ollama",
         description="",
         thinking=True,
     )
@@ -42,10 +44,28 @@ def model(request: pytest.FixtureRequest) -> Model:
     return requested_model
 
 
+@pytest.fixture(autouse=True)
+def skip_by_model(request: pytest.FixtureRequest, model: Model) -> None:
+    skip_thinking_marker: pytest.Mark | None = request.node.get_closest_marker("skip_thinking")  # pyright: ignore
+    skip_model_marker: pytest.Mark | None = request.node.get_closest_marker("skip_model")  # pyright: ignore
+    if skip_model_marker and f"{model.model_provider}/{model.model_name}" in skip_model_marker.args:  # pyright: ignore
+        pytest.skip(f"Skipping model {model.model_provider}/{model.model_name}")
+    if skip_thinking_marker and model.thinking:
+        pytest.skip("Skipping thinking model")
+
+
+def test_model_available(model: Model) -> None:
+    assert model.is_available()
+
+
 def test_model(model: Model) -> None:
-    context = Context.simple("hi")
+    context = Context.simple("hi", system_prompt="you need to reply with hello")
     result: AssistantResponse[str] = model.chat_completion(context.messages)
     print(result)
+    assert result.message.content.lower().find("{") == -1
+    assert result.message.content.lower().find("hello") >= 0
+    if model.thinking:
+        assert result.message.reasoning
 
 
 def test_response_format(model: Model) -> None:
@@ -69,6 +89,7 @@ def test_response_format(model: Model) -> None:
     assert len(result.message.content.languages) > 0
 
 
+@pytest.mark.skip_thinking()
 def test_response_format_irrelevant(model: Model) -> None:
     # The thinking part is supposed to be ignored when using response_format.
     context = Context.simple("what is the weather in TLV?", "Show a step by step thinking process")
@@ -80,10 +101,9 @@ def test_response_format_irrelevant(model: Model) -> None:
         result = model.chat_completion(context.messages, response_format=ResponseFormat, token_limit=100)
         print(result)
         assert len(result.message.content.languages) > 0
-    except LengthFinishReasonError:
-        # The model may get stuck in a loop in this test, which happens because it follows the format, so there is a
-        # token limit that is allowed to be exceeded in the test and does not fail it.
-        pass
+    except ModelTokenLimitExceededError as e:
+        partial_result = e.partial_response
+        print(partial_result)
 
 
 @pytest.mark.skip(reason="Not supported yet")
@@ -222,6 +242,7 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
     assert result.message.tool_calls in [None, []]
 
 
+@pytest.mark.skip_model("ollama_chat/qwen3:14b")
 def test_tools_with_content(model: Model) -> None:
     context = Context.simple(
         "What is the weather in the capital of israel?",
@@ -245,7 +266,7 @@ def test_tools_with_content(model: Model) -> None:
 
     result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    assert len(result.message.content) > 0 or len(result.message.reasoning or []) > 0
+    assert len(result.message.content) > 0 or len(result.message.reasoning or "") > 0
     assert result.message.tool_calls
     assert len(result.message.tool_calls) == 1
     assert result.message.tool_calls[0].function.name == "weather_tool"

@@ -2,19 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from openai.types.chat import (
-    ChatCompletionAssistantMessageParam,
-    ChatCompletionDeveloperMessageParam,
-    ChatCompletionFunctionMessageParam,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionUserMessageParam,
-    ParsedChatCompletionMessage,
-)
-from openai.types.chat.chat_completion_message_function_tool_call_param import (
-    ChatCompletionMessageFunctionToolCallParam,
-    Function,
-)
+import litellm
 from pydantic import BaseModel
 
 __all__ = [
@@ -37,16 +25,9 @@ class ChatCompletionMessage[RoleT: RoleType](BaseModel, ABC):
     role: RoleT
 
     @abstractmethod
-    def to_openai_param(
+    def to_litellm_message(
         self,
-    ) -> (
-        ChatCompletionDeveloperMessageParam
-        | ChatCompletionSystemMessageParam
-        | ChatCompletionUserMessageParam
-        | ChatCompletionAssistantMessageParam
-        | ChatCompletionToolMessageParam
-        | ChatCompletionFunctionMessageParam
-    ):
+    ) -> litellm.Message:
         raise NotImplementedError
 
 
@@ -55,8 +36,8 @@ class SystemMessage(ChatCompletionMessage[Literal["system"]]):
     content: str
     name: str | None = None
 
-    def to_openai_param(self) -> ChatCompletionSystemMessageParam:
-        return ChatCompletionSystemMessageParam(content=self.content, name=self.name or "", role="system")
+    def to_litellm_message(self) -> litellm.Message:
+        return litellm.Message(role="system", content=self.content)
 
 
 class UserMessage(ChatCompletionMessage[Literal["user"]]):
@@ -64,8 +45,8 @@ class UserMessage(ChatCompletionMessage[Literal["user"]]):
     content: str
     name: str | None = None
 
-    def to_openai_param(self) -> ChatCompletionUserMessageParam:
-        return ChatCompletionUserMessageParam(content=self.content, name=self.name or "", role="user")
+    def to_litellm_message(self) -> litellm.Message:
+        return litellm.Message(role="user", content=self.content)
 
 
 class ToolCallFunction(BaseModel):
@@ -88,56 +69,70 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
     name: str | None = None
 
     @staticmethod
-    def from_openai_parsed_message[ST: BaseModel | str](
-        completion_message: ParsedChatCompletionMessage[Any], response_format: type[ST], assistant_name: str
+    def from_litellm_message[ST: BaseModel | str](
+        completion_message: litellm.Message, response_format: type[ST], assistant_name: str
     ) -> "AssistantMessage[ST]":
         content: ST
         if issubclass(response_format, BaseModel):
-            assert isinstance(completion_message.content, str)
-            content = response_format.model_validate_json(completion_message.content, strict=True, extra="forbid")
-        elif response_format is str:
-            content = response_format(completion_message.content or "")
+            if not completion_message.content:
+                raise ValueError("Response format is a pydantic model, but no content was returned.")
+            content = response_format.model_validate_json(completion_message.content)
         else:
-            raise TypeError(f"Unsupported response format: {response_format}")
+            content = completion_message.content or ""  # type: ignore
 
-        # Some apis return reasoning in a separate field, even though it's not part of the openai message.
-        reasoning: str | None | Any = getattr(completion_message, "reasoning", None)
-        if reasoning and not isinstance(reasoning, str):
-            raise TypeError(f"Unexpected reasoning type: {type(reasoning)}")
+        tool_calls: list[ToolCall] | None = None
+        if completion_message.tool_calls:
+            tool_calls = []
+            tc: litellm.ChatCompletionMessageToolCall
+            for tc in completion_message.tool_calls:
+                if tc.type != "function":
+                    raise ValueError(f"Unsupported tool call type: {tc.type}")
+                if not tc.function:
+                    raise ValueError("Tool call function is missing.")
+                if not tc.function.name:
+                    raise ValueError("Tool call function name is missing.")
+                if not tc.function.arguments:
+                    raise ValueError("Tool call function arguments are missing.")
+                tool_calls.append(
+                    ToolCall(
+                        id=tc.id,
+                        type="function",
+                        function=ToolCallFunction(name=tc.function.name, arguments=tc.function.arguments),
+                    )
+                )
 
         return AssistantMessage(
-            name=assistant_name,
             content=content,
-            reasoning=reasoning,
-            tool_calls=[
-                ToolCall(
-                    id=t.id,
-                    type=t.type,
-                    function=ToolCallFunction(name=t.function.name, arguments=t.function.arguments),
-                )
-                for t in completion_message.tool_calls
-            ]
-            if completion_message.tool_calls
-            else [],
+            reasoning=getattr(completion_message, "reasoning_content", None),
+            refusal=getattr(completion_message, "refusal", None),
+            tool_calls=tool_calls,
+            name=assistant_name,
         )
 
-    def to_openai_param(self) -> ChatCompletionAssistantMessageParam:
-        output_content: str
-        if isinstance(self.content, str):
-            output_content = self.content
-        elif isinstance(self.content, BaseModel):  # pyright: ignore [reportUnnecessaryIsInstance]
-            output_content = self.content.model_dump_json()
-        else:
-            raise TypeError(f"Unsupported content type: {type(self.content)}")
+    def to_litellm_message(self) -> litellm.Message:
+        content_str: str | None = None
+        if isinstance(self.content, BaseModel):
+            content_str = self.content.model_dump_json()
+        elif isinstance(self.content, str):  # pyright: ignore [reportUnnecessaryIsInstance]
+            content_str = self.content
 
-        content: str = f"<think>{self.reasoning}</think>{output_content}" if self.reasoning else output_content
-        tool_calls: list[ChatCompletionMessageFunctionToolCallParam] = [
-            ChatCompletionMessageFunctionToolCallParam(
-                id=t.id, type="function", function=Function(arguments=t.function.arguments, name=t.function.name)
-            )
-            for t in self.tool_calls or []
-        ]
-        return ChatCompletionAssistantMessageParam(content=content, role="assistant", tool_calls=tool_calls)
+        tool_calls = None
+        if self.tool_calls:
+            tool_calls = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in self.tool_calls
+            ]
+
+        return litellm.Message(
+            role="assistant",
+            content=content_str,
+            tool_calls=tool_calls,
+            reasoning_content=self.reasoning,
+        )
 
 
 class ToolMessage(ChatCompletionMessage[Literal["tool"]]):
@@ -146,8 +141,8 @@ class ToolMessage(ChatCompletionMessage[Literal["tool"]]):
     content: str
     name: str | None = None
 
-    def to_openai_param(self) -> ChatCompletionToolMessageParam:
-        return ChatCompletionToolMessageParam(content=self.content, role="tool", tool_call_id=self.tool_call_id)
+    def to_litellm_message(self) -> litellm.Message:
+        return litellm.Message(role="tool", content=self.content, tool_call_id=self.tool_call_id)
 
 
 type AnyChatCompletionMessage = SystemMessage | UserMessage | AssistantMessage[Any] | ToolMessage

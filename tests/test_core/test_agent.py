@@ -30,7 +30,9 @@ async def test_weather_agent(simple_router: Router) -> None:
         tools=[weather_tool, get_user_info_from_str_deps_tool],
     )
     result = await agent.run(
-        "What is the weather in the user's country's capital?",
+        "What is the weather in the user's country's capital?\n"
+        "Think step by step before making any tool calls.\n"
+        "Do not get political.",
         simple_router,
         deps=ToolDepsRegistry.from_map({user_info_dep_type: "35F living in Tel Aviv"}),
     )
