@@ -34,7 +34,6 @@ class ChatCompletionMessage[RoleT: RoleType](BaseModel, ABC):
 class SystemMessage(ChatCompletionMessage[Literal["system"]]):
     role: Literal["system"] = "system"
     content: str
-    name: str | None = None
 
     def to_litellm_message(self) -> litellm.Message:
         return litellm.Message(role="system", content=self.content)
@@ -131,7 +130,6 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
             role="assistant",
             content=content_str,
             tool_calls=tool_calls,
-            reasoning_content=self.reasoning,
         )
 
 
@@ -156,6 +154,6 @@ class Context:
     def simple(cls, prompt: str, system_prompt: str | None = None) -> "Context":
         messages_list: list[AnyChatCompletionMessage] = []
         if system_prompt:
-            messages_list.append(SystemMessage(content=system_prompt, name=""))
-        messages_list.append(UserMessage(content=prompt, name=""))
+            messages_list.append(SystemMessage(content=system_prompt))
+        messages_list.append(UserMessage(content=prompt))
         return cls(messages=messages_list)
