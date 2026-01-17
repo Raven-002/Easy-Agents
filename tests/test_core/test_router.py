@@ -10,61 +10,52 @@ unavailable_model_name = "qwen-coder-480-abc123"
 
 models_pool: dict[ModelId, Model] = {
     "general-coder": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A coding model, run at moderate speeds, only good at writing code, and is average+ in all "
         "programming languages, enough for most tasks. Knows almost only english.",
     ),
     "c-coder": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A coding model, run at moderate speeds, Especially good at writing C code.",
     ),
     "python-coder": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A coding model, run at moderate speeds, Especially good at writing python code.",
     ),
     "qwen3-coder-30B-A3B": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A coding model, run at moderate speeds, good executing well defined tasks.",
     ),
     "qwen3:14b": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A model with moderate/slow speed, have hard time with a lot of tools.",
         thinking=True,
     ),
     "glm-z1-9b": Model(
+        model_provider="ollama_chat",
         model_name=available_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A fast model good for deep thinking and analysis",
         thinking=True,
     ),
     "rust-coder": Model(
+        model_provider="ollama_chat",
         model_name=unavailable_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="A coding model, run at moderate speeds, Especially good at writing rust code.",
     ),
     "qwen-coder-480": Model(
+        model_provider="ollama_chat",
         model_name=unavailable_model_name,
-        api_base="http://localhost:11434/v1",
-        api_key="ollama",
         description="One of the best models for coding tasks. Use this for very complex tasks. The only model that "
         "can handle complex tasks with no bugs and no failures.",
     ),
     "qwen4-multi-language": Model(
+        model_provider="ollama_chat",
         model_name=unavailable_model_name,
-        api_base="http://localhost:61435/v1",  # Also, test unavailable api (port changed)
-        api_key="ollama",
         description="The only model that knows more than just english. It has deep knowledge in every human language "
         "there is, and is the only valid choice for tasks in foreign languages.",
     ),

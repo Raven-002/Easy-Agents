@@ -37,7 +37,7 @@ class SystemMessage(ChatCompletionMessage[Literal["system"]]):
     name: str | None = None
 
     def to_litellm_message(self) -> litellm.Message:
-        raise NotImplementedError  # TODO
+        return litellm.Message(role="system", content=self.content)
 
 
 class UserMessage(ChatCompletionMessage[Literal["user"]]):
@@ -46,7 +46,7 @@ class UserMessage(ChatCompletionMessage[Literal["user"]]):
     name: str | None = None
 
     def to_litellm_message(self) -> litellm.Message:
-        raise NotImplementedError  # TODO
+        return litellm.Message(role="user", content=self.content)
 
 
 class ToolCallFunction(BaseModel):
@@ -70,12 +70,69 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
 
     @staticmethod
     def from_litellm_message[ST: BaseModel | str](
-        completion_message: litellm.Message[Any], response_format: type[ST], assistant_name: str
+        completion_message: litellm.Message, response_format: type[ST], assistant_name: str
     ) -> "AssistantMessage[ST]":
-        raise NotImplementedError  # TODO
+        content: ST
+        if issubclass(response_format, BaseModel):
+            if not completion_message.content:
+                raise ValueError("Response format is a pydantic model, but no content was returned.")
+            content = response_format.model_validate_json(completion_message.content)
+        else:
+            content = completion_message.content or ""  # type: ignore
+
+        tool_calls: list[ToolCall] | None = None
+        if completion_message.tool_calls:
+            tool_calls = []
+            tc: litellm.ChatCompletionMessageToolCall
+            for tc in completion_message.tool_calls:
+                if tc.type != "function":
+                    raise ValueError(f"Unsupported tool call type: {tc.type}")
+                if not tc.function:
+                    raise ValueError("Tool call function is missing.")
+                if not tc.function.name:
+                    raise ValueError("Tool call function name is missing.")
+                if not tc.function.arguments:
+                    raise ValueError("Tool call function arguments are missing.")
+                tool_calls.append(
+                    ToolCall(
+                        id=tc.id,
+                        type="function",
+                        function=ToolCallFunction(name=tc.function.name, arguments=tc.function.arguments),
+                    )
+                )
+
+        return AssistantMessage(
+            content=content,
+            reasoning=getattr(completion_message, "reasoning_content", None),
+            refusal=getattr(completion_message, "refusal", None),
+            tool_calls=tool_calls,
+            name=assistant_name,
+        )
 
     def to_litellm_message(self) -> litellm.Message:
-        raise NotImplementedError  # TODO
+        content_str: str | None = None
+        if isinstance(self.content, BaseModel):
+            content_str = self.content.model_dump_json()
+        elif isinstance(self.content, str):  # pyright: ignore [reportUnnecessaryIsInstance]
+            content_str = self.content
+
+        tool_calls = None
+        if self.tool_calls:
+            tool_calls = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in self.tool_calls
+            ]
+
+        return litellm.Message(
+            role="assistant",
+            content=content_str,
+            tool_calls=tool_calls,
+            reasoning_content=self.reasoning,
+        )
 
 
 class ToolMessage(ChatCompletionMessage[Literal["tool"]]):
@@ -85,7 +142,7 @@ class ToolMessage(ChatCompletionMessage[Literal["tool"]]):
     name: str | None = None
 
     def to_litellm_message(self) -> litellm.Message:
-        raise NotImplementedError  # TODO
+        return litellm.Message(role="tool", content=self.content, tool_call_id=self.tool_call_id)
 
 
 type AnyChatCompletionMessage = SystemMessage | UserMessage | AssistantMessage[Any] | ToolMessage
