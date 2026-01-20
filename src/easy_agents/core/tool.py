@@ -98,13 +98,13 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
         self._results_type = results_type
         self._deps_type = deps_type
 
-        self._parameters_shema: dict[str, Any] = {}
+        self._parameters_schema: dict[str, Any] = {}
         if issubclass(self._parameters_type, BaseModel):
-            self._parameters_shema = self._parameters_type.model_json_schema()
+            self._parameters_schema = self._parameters_type.model_json_schema()
         elif self._parameters_type is str:
-            self._parameters_shema = self.StringParameter.model_json_schema()
+            self._parameters_schema = self.StringParameter.model_json_schema()
         else:
-            self._parameters_shema = {"type": "object", "properties": {}}
+            self._parameters_schema = {"type": "object", "properties": {}}
 
     @property
     def name(self) -> str:
@@ -152,7 +152,7 @@ class Tool[ParametersType: ParametersBaseType, ResultsType: ResultsBaseType, Dep
             "function": {
                 "name": self.name,
                 "description": self.description,
-                "parameters": self._parameters_shema,
+                "parameters": self._parameters_schema,
                 "strict": True,
             },
         }
