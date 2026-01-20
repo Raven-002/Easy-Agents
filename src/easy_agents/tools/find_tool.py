@@ -56,27 +56,15 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: FindParamet
 
     # Collect all files to search
     files_to_search: list[Path] = []
+    project_root = Path(deps.project_root)
 
     for path_str in parameters.paths:
         path = Path(path_str)
         if not path.is_absolute():
-            path = Path(deps.project_root) / path
+            path = project_root / path
 
         if not path.exists():
             continue
-
-        # Load gitignore patterns if they exist in the root of the search path
-        spec = None
-        # TODO: Find it better
-        gitignore_path = path / ".gitignore" if path.is_dir() else path.parent / ".gitignore"
-
-        if gitignore_path.exists():
-            try:
-                with open(gitignore_path, encoding="utf-8") as file:
-                    spec = pathspec.PathSpec.from_lines("gitignore", file)
-            except Exception:
-                # spec = None
-                raise
 
         if parameters.is_dir and path.is_dir():
             for f in path.rglob("*"):
@@ -86,8 +74,25 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: FindParamet
                 if not f.is_file():
                     continue
 
-                relative_path = str(f.relative_to(path))
-                if spec and spec.match_file(relative_path):
+                # Check all .gitignore files from the file up to the project root
+                is_ignored = False
+                current = f
+                while current.parent != current:
+                    gitignore = current.parent / ".gitignore"
+                    if gitignore.exists():
+                        try:
+                            with open(gitignore, encoding="utf-8") as file:
+                                spec = pathspec.PathSpec.from_lines("gitignore", file)
+                                if spec.match_file(str(f.relative_to(current.parent))):
+                                    is_ignored = True
+                                    break
+                        except Exception:
+                            pass
+                    if current.parent == project_root:
+                        break
+                    current = current.parent
+
+                if is_ignored:
                     continue
 
                 if is_binary(f):
