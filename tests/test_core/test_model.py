@@ -188,7 +188,9 @@ async def test_auto_tools_needed(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = await model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     # Some models will give output/reasoning, while some don't. The only important part is that we get a tool call.
     assert result.message.tool_calls
@@ -247,7 +249,9 @@ async def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = await model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     assert len(result.message.content) > 0
     assert result.message.tool_calls in [None, []]
@@ -277,7 +281,9 @@ async def test_tools_with_content(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = await model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     if model.thinking:
         assert result.message.reasoning
