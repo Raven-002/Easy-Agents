@@ -9,7 +9,7 @@ from easy_agents.core.tool import RunContext, Tool
 from .deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
 
-class _Parameters(BaseModel):
+class FindParameters(BaseModel):
     search_expression: str = Field(description="The regex pattern to search for, using Python's re syntax.")
     paths: list[str] = Field(description="A list of file or directory paths to search within. Globs are not supported.")
     is_dir: bool = Field(description="If True, performs a recursive search through all files in the provided paths.")
@@ -17,7 +17,7 @@ class _Parameters(BaseModel):
     context_after: int = Field(0, description="Number of lines of trailing context to include after each match.")
 
 
-class _Match(BaseModel):
+class FindMatch(BaseModel):
     """A match"""
 
     path: str = Field(description="The path of the match.")
@@ -26,8 +26,8 @@ class _Match(BaseModel):
     match: str = Field(description="The match.")
 
 
-class _Results(BaseModel):
-    matches: list[_Match] = Field(description="List of matches found.")
+class FindResults(BaseModel):
+    matches: list[FindMatch] = Field(description="List of matches found.")
     matches_count: int = Field(description="The number of matches found.")
 
 
@@ -43,16 +43,16 @@ def is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
         return True  # Treat unreadable files as binary/skip
 
 
-async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: FindParameters) -> FindResults:
     """Search for text patterns in files using regular expressions."""
-    matches: list[_Match] = []
+    matches: list[FindMatch] = []
 
     try:
         # Compile the regex pattern
         pattern = re.compile(parameters.search_expression)
     except re.error:
         # Return empty results if regex is invalid
-        return _Results(matches=[], matches_count=0)
+        return FindResults(matches=[], matches_count=0)
 
     # Collect all files to search
     files_to_search: list[Path] = []
@@ -125,16 +125,16 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters
                     )
 
                     matches.append(
-                        _Match(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group())
+                        FindMatch(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group())
                     )
         except (OSError, UnicodeDecodeError):
             # Skip files that can't be read
             continue
 
-    return _Results(matches=matches, matches_count=len(matches))
+    return FindResults(matches=matches, matches_count=len(matches))
 
 
-find_tool = Tool[_Parameters, _Results, ProjectFilesDeps](
+find_tool = Tool[FindParameters, FindResults, ProjectFilesDeps](
     name="find_tool",
     description=(
         "Search for text patterns in files using regular expressions. Can search single files or recursively "
@@ -142,6 +142,6 @@ find_tool = Tool[_Parameters, _Results, ProjectFilesDeps](
     ),
     run=_run,
     deps_type=project_files_deps_type,
-    parameters_type=_Parameters,
-    results_type=_Results,
+    parameters_type=FindParameters,
+    results_type=FindResults,
 )
