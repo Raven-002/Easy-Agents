@@ -30,12 +30,12 @@ class ModelRegistryEntry(BaseModel):
     is_available: bool
 
     @staticmethod
-    def from_model(model_id: ModelId, model: Model) -> "ModelRegistryEntry":
+    async def from_model(model_id: ModelId, model: Model) -> "ModelRegistryEntry":
         return ModelRegistryEntry(
             id=model_id,
             has_thinking=model.thinking,
             description=model.description,
-            is_available=model.is_available(),
+            is_available=await model.is_available(),
         )
 
 
@@ -69,25 +69,25 @@ class Router(BaseModel):
     def get_model(self, model_id: ModelId) -> Model:
         return self.models_pool[model_id]
 
-    def get_active_router(self) -> Model:
+    async def get_active_router(self) -> Model:
         for model_id in self.router_pool:
             model = self.get_model(model_id)
-            if model.is_available():
+            if await model.is_available():
                 return model
         raise RuntimeError("No available router model found.")
 
-    def get_models_descriptions_and_status(self) -> ModelRegistry:
+    async def get_models_descriptions_and_status(self) -> ModelRegistry:
         entries: list[ModelRegistryEntry] = []
         for model_id, model in self.models_pool.items():
-            entries.append(ModelRegistryEntry.from_model(model_id, model))
+            entries.append(await ModelRegistryEntry.from_model(model_id, model))
         if all([entry.is_available is False for entry in entries]):
             raise RuntimeError("All models are unavailable.")
         return ModelRegistry(models=entries)
 
-    def route_task(self, task_description: str) -> Model:
+    async def route_task(self, task_description: str) -> Model:
         # TODO: Support no good model, identifying unavailable chosen model.
-        router_model = self.get_active_router()
-        models_registry = self.get_models_descriptions_and_status()
+        router_model = await self.get_active_router()
+        models_registry = await self.get_models_descriptions_and_status()
         messages: list[AnyChatCompletionMessage] = [
             SystemMessage(content=routing_guidelines),
             UserMessage(content=f"Model Pool:\n{models_registry}\n\n Task Description:\n{task_description}"),
@@ -96,6 +96,6 @@ class Router(BaseModel):
         class ModelChoice(BaseModel):
             model_id: str = Field(..., description="ID of the chosen model.")
 
-        chosen_model_response = router_model.chat_completion(messages, response_format=ModelChoice)
+        chosen_model_response = await router_model.chat_completion(messages, response_format=ModelChoice)
         router_model = self.get_model(chosen_model_response.message.content.model_id)
         return router_model

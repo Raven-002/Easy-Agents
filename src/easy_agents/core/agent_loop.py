@@ -76,7 +76,7 @@ async def run_agent_tools_loop(
     tools: list[ToolAny] | None = None,
 ) -> None:
     while True:
-        reply: AssistantResponse[str] = model.chat_completion(run_context.ctx.messages, tools)
+        reply: AssistantResponse[str] = await model.chat_completion(run_context.ctx.messages, tools)
         run_context.ctx.messages.append(reply.message)
 
         # When there are no tool calls left, the tools loop is finished.
@@ -100,10 +100,10 @@ async def run_agent_loop[OutputT: AgentLoopOutputType](
     deps: ToolDepsRegistry | None = None,
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)
-    main_model = router.route_task(task_descriptions)
+    main_model = await router.route_task(task_descriptions)
     run_context = RunContext(deps=deps or ToolDepsRegistry.empty(), ctx=ctx)
     await run_agent_tools_loop(main_model, run_context, tools)
-    final_output_model = router.route_task(context_to_final_output_task_description(task_descriptions))
+    final_output_model = await router.route_task(context_to_final_output_task_description(task_descriptions))
     ctx.messages.append(UserMessage(content="Provide the final output based on the conversation history."))
-    output_message = final_output_model.chat_completion(ctx.messages, response_format=output_type)
+    output_message = await final_output_model.chat_completion(ctx.messages, response_format=output_type)
     return output_message.message.content

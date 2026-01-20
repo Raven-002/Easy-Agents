@@ -5,22 +5,22 @@ from tests.test_core.support.helper_routers import complex_models_pool, simple_m
 
 
 @pytest.fixture(scope="module")
-def simple_router(request: pytest.FixtureRequest) -> Router:
+async def simple_router(request: pytest.FixtureRequest) -> Router:
     router = Router(
         models_pool=simple_models_pool,
         router_pool=["qwen3-coder"],
     )
-    if not router.models_pool[router.router_pool[0]].is_available():
+    if not await router.models_pool[router.router_pool[0]].is_available():
         pytest.skip("Skipping router because it is not available.")
     return router
 
 
 @pytest.fixture(scope="module")
-def complex_router(request: pytest.FixtureRequest) -> Router:
+async def complex_router(request: pytest.FixtureRequest) -> Router:
     router = Router(
         models_pool=complex_models_pool,
         router_pool=["qwen3-coder"],
     )
-    if not router.models_pool[router.router_pool[0]].is_available():
+    if not await router.models_pool[router.router_pool[0]].is_available():
         pytest.skip("Skipping router because it is not available.")
     return router
