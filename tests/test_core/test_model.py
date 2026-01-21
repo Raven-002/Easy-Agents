@@ -245,9 +245,10 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
 @pytest.mark.skip_model("ollama_chat/qwen3:14b")
 def test_tools_with_content(model: Model) -> None:
     context = Context.simple(
-        "What is the weather in the capital of israel?",
+        "What is the weather in the capital of israel like? what do you recommend me to wear?",
         system_prompt="Show a step by step thinking process. Think before making any tool call. Do not provide tool "
-        "calls without planning.",
+        "calls without planning. You MUST provide a summerized plan before making any tool calls. Your internal "
+        "thought process will be erased after each tool call.",
     )
 
     class WeatherToolParams(BaseModel):
@@ -266,9 +267,24 @@ def test_tools_with_content(model: Model) -> None:
 
     result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
     print(result)
-    assert len(result.message.content) > 0 or len(result.message.reasoning or "") > 0
+    if model.thinking:
+        assert result.message.reasoning
+    assert result.message.content
     assert result.message.tool_calls
     assert len(result.message.tool_calls) == 1
     assert result.message.tool_calls[0].function.name == "weather_tool"
     response = WeatherToolParams.model_validate_json(result.message.tool_calls[0].function.arguments, strict=True)
     assert response == WeatherToolParams(city="Jerusalem")
+
+
+def test_thinking(model: Model) -> None:
+    context = Context.simple(
+        "what is the largest country in size?", system_prompt="Show a step by step thinking process"
+    )
+    result: AssistantResponse[str] = model.chat_completion(context.messages)
+    print(result)
+    if model.thinking:
+        assert result.message.reasoning
+    else:
+        assert not result.message.reasoning
+        assert result.message.content.lower().find("step") >= 0
