@@ -31,6 +31,7 @@ class Model(BaseModel):
     model_name: str
     description: str
     thinking: bool = False
+    assume_available: bool = False
 
     def model_post_init(self, context: Any, /) -> None:
         if self.model_provider == "openai":
@@ -41,6 +42,9 @@ class Model(BaseModel):
                 raise ValueError("Ollama API base and key must not be provided.")
 
     async def is_available(self) -> bool:
+        if self.assume_available:
+            return True
+
         try:
             await self.chat_completion([UserMessage(content="do not think. reply yes")], tools=[], token_limit=1)
             return True
