@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from collections.abc import Iterator
 
 import pytest
 from pydantic import BaseModel
@@ -10,48 +9,9 @@ from easy_agents.core.model import Model, ModelTokenLimitExceededError
 from easy_agents.core.tool import RunContext, Tool
 
 
-def get_test_models() -> Iterator[Model]:
-    yield Model(
-        model_provider="ollama_chat",
-        model_name="hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL",
-        # api_base="http://localhost:11434/v1",
-        # api_key="ollama",
-        description="",
-    )
-    yield Model(
-        model_provider="ollama_chat",
-        model_name="qwen3:14b",
-        # api_base="http://localhost:11434/v1",
-        # api_key="ollama",
-        description="",
-        thinking=True,
-    )
-    yield Model(
-        model_provider="ollama_chat",
-        model_name="glm-z1-9b",  # Based on "hf.co/unsloth/GLM-Z1-9B-0414-GGUF:Q6_K_XL"
-        # api_base="http://localhost:11434/v1",
-        # api_key="ollama",
-        description="",
-        thinking=True,
-    )
-    # NOTE: glm-4-9b non-thinking has problems passing the tests, so it is removed.
-
-
-@pytest.fixture(params=get_test_models(), scope="module")
-async def model(request: pytest.FixtureRequest) -> Model:
-    requested_model: Model = request.param
-    if not await requested_model.is_available():
-        pytest.skip("Skipping model because it is not available.")
-    assert isinstance(requested_model, Model)
-    return requested_model
-
-
 @pytest.fixture(autouse=True)
 def skip_by_model(request: pytest.FixtureRequest, model: Model) -> None:
     skip_thinking_marker: pytest.Mark | None = request.node.get_closest_marker("skip_thinking")  # pyright: ignore
-    skip_model_marker: pytest.Mark | None = request.node.get_closest_marker("skip_model")  # pyright: ignore
-    if skip_model_marker and f"{model.model_provider}/{model.model_name}" in skip_model_marker.args:  # pyright: ignore
-        pytest.skip(f"Skipping model {model.model_provider}/{model.model_name}")
     if skip_thinking_marker and model.thinking:
         pytest.skip("Skipping thinking model")
 
@@ -257,7 +217,6 @@ async def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
     assert result.message.tool_calls in [None, []]
 
 
-@pytest.mark.skip_model("ollama_chat/qwen3:14b")
 @pytest.mark.asyncio
 async def test_tools_with_content(model: Model) -> None:
     context = Context.simple(
