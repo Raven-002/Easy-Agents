@@ -295,11 +295,12 @@ async def test_tools_with_content(model: Model) -> None:
     assert response == WeatherToolParams(city="Jerusalem")
 
 
-def test_thinking(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_thinking(model: Model) -> None:
     context = Context.simple(
         "what is the largest country in size?", system_prompt="Show a step by step thinking process"
     )
-    result: AssistantResponse[str] = model.chat_completion(context.messages)
+    result: AssistantResponse[str] = await model.chat_completion(context.messages)
     print(result)
     if model.thinking:
         assert result.message.reasoning
