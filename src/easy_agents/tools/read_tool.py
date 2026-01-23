@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from easy_agents.core.tool import RunContext, Tool
 
 
-class _Parameters(BaseModel):
+class ReadParameters(BaseModel):
     file_path: str = Field(description="The file to read.")
     start_line: int = Field(
         0,
@@ -17,27 +17,31 @@ class _Parameters(BaseModel):
     )
 
 
-class _Line(BaseModel):
+class ReadLine(BaseModel):
     line_number: int = Field(description="The line number.")
     line: str = Field(description="The line content.")
 
 
-class _Results(BaseModel):
-    lines: list[_Line] = Field(description="List of read lines.")
+class ReadResults(BaseModel):
+    lines: list[ReadLine] = Field(description="List of read lines.")
     lines_count: int = Field(description="The number of lines read.")
 
 
-async def _run(_ctx: RunContext, parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext, parameters: ReadParameters) -> ReadResults:
     with open(parameters.file_path) as file:
-        all_lines: list[_Line] = [_Line(line_number=i, line=content) for i, content in enumerate(file.readlines())]
-    lines = all_lines[parameters.start_line : parameters.end_line - 1]
-    return _Results(lines=lines, lines_count=len(lines))
+        all_lines: list[ReadLine] = [
+            ReadLine(line_number=i, line=content) for i, content in enumerate(file.readlines())
+        ]
+    if parameters.end_line == 0:
+        parameters.end_line = len(all_lines)
+    lines = all_lines[parameters.start_line : parameters.end_line]
+    return ReadResults(lines=lines, lines_count=len(lines))
 
 
-read_tool = Tool[_Parameters, _Results, None](
+read_tool = Tool[ReadParameters, ReadResults, None](
     name="read_tool",
     description="Read the content of a file.",
     run=_run,
-    parameters_type=_Parameters,
-    results_type=_Results,
+    parameters_type=ReadParameters,
+    results_type=ReadResults,
 )

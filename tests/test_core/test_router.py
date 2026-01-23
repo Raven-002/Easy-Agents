@@ -63,38 +63,46 @@ models_pool: dict[ModelId, Model] = {
 
 
 @pytest.fixture(scope="module")
-def router(request: pytest.FixtureRequest) -> Router:
-    return Router(
+async def router(request: pytest.FixtureRequest) -> Router:
+    router = Router(
         models_pool=models_pool,
         router_pool=["qwen3-coder-30B-A3B"],
     )
+    if not await router.models_pool[router.router_pool[0]].is_available():
+        pytest.skip("Skipping router because it is not available.")
+    return router
 
 
-def test_route_task_python_code(router: Router) -> None:
-    model = router.route_task("Write a python function that returns the sum of two numbers.")
+@pytest.mark.asyncio
+async def test_route_task_python_code(router: Router) -> None:
+    model = await router.route_task("Write a python function that returns the sum of two numbers.")
     assert model == models_pool["python-coder"]
 
 
-def test_route_task_general_code(router: Router) -> None:
-    model = router.route_task("Write a function that returns the sum of two numbers.")
+@pytest.mark.asyncio
+async def test_route_task_general_code(router: Router) -> None:
+    model = await router.route_task("Write a function that returns the sum of two numbers.")
     assert model == models_pool["general-coder"]
 
 
-def test_route_task_rust_code(router: Router) -> None:
-    model = router.route_task("Write a simple rust function that returns the sum of two numbers.")
+@pytest.mark.asyncio
+async def test_route_task_rust_code(router: Router) -> None:
+    model = await router.route_task("Write a simple rust function that returns the sum of two numbers.")
     assert model == models_pool["general-coder"] or model == models_pool["c-coder"]
 
 
-def test_route_task_complex_code(router: Router) -> None:
-    model = router.route_task(
+@pytest.mark.asyncio
+async def test_route_task_complex_code(router: Router) -> None:
+    model = await router.route_task(
         "Write a very complex function based on the user input. The function is very complex, "
         "and is not allowed to fail or have bugs."
     )
     assert model == models_pool["qwen-coder-480"]
 
 
-def test_route_task_general(router: Router) -> None:
-    model = router.route_task("A fast pace call center core in english.")
+@pytest.mark.asyncio
+async def test_route_task_general(router: Router) -> None:
+    model = await router.route_task("A fast pace call center core in english.")
     assert (
         model == models_pool["glm-z1-9b"]
         or model == models_pool["qwen3-coder-30B-A3B"]
@@ -102,6 +110,7 @@ def test_route_task_general(router: Router) -> None:
     )
 
 
-def test_route_task_multi_language(router: Router) -> None:
-    model = router.route_task("A call center core in hebrew and spanish.")
+@pytest.mark.asyncio
+async def test_route_task_multi_language(router: Router) -> None:
+    model = await router.route_task("A call center core in hebrew and spanish.")
     assert model == models_pool["qwen4-multi-language"]

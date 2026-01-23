@@ -1,0 +1,23 @@
+# This workflow run tests on the code
+
+name: Test Python application
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  testall:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: astral-sh/setup-uv@v7
+      - uses: extractions/setup-just@v3
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: just testall

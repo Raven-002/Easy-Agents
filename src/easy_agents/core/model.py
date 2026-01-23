@@ -40,9 +40,9 @@ class Model(BaseModel):
             if self.api_base is not None or self.api_key is not None:
                 raise ValueError("Ollama API base and key must not be provided.")
 
-    def is_available(self) -> bool:
+    async def is_available(self) -> bool:
         try:
-            self.chat_completion([UserMessage(content="do not think. reply yes")], tools=[], token_limit=1)
+            await self.chat_completion([UserMessage(content="do not think. reply yes")], tools=[], token_limit=1)
             return True
         except ModelTokenLimitExceededError:
             return True
@@ -85,7 +85,7 @@ class Model(BaseModel):
             raise TypeError(f"Expected ModelResponse, got {type(final)}")
         return final
 
-    def _chat_completion[T: BaseModel | str](
+    async def _chat_completion[T: BaseModel | str](
         self,
         messages: Iterable[AnyChatCompletionMessage],
         tools: list[ToolAny] | None = None,
@@ -106,7 +106,7 @@ class Model(BaseModel):
 
         should_stream = False
 
-        completion = litellm.completion(  # pyright: ignore [reportUnknownMemberType]
+        completion = await litellm.acompletion(  # pyright: ignore [reportUnknownMemberType]
             model=f"{self.model_provider}/{self.model_name}",
             api_base=self.api_base,
             api_key=self.api_key,
@@ -144,7 +144,7 @@ class Model(BaseModel):
             finish_reason=finish_reason,
         )
 
-    def chat_completion[T: BaseModel | str](
+    async def chat_completion[T: BaseModel | str](
         self,
         messages: Iterable[AnyChatCompletionMessage],
         tools: list[ToolAny] | None = None,
@@ -154,7 +154,7 @@ class Model(BaseModel):
         temperature: float = 0.0,
         token_limit: int = 0,
     ) -> AssistantResponse[T]:
-        assistant_response = self._chat_completion(
+        assistant_response = await self._chat_completion(
             messages, tools, tool_choice, response_format, assistant_name, temperature, token_limit
         )
         print(assistant_response)

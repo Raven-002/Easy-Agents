@@ -38,8 +38,10 @@ def get_test_models() -> Iterator[Model]:
 
 
 @pytest.fixture(params=get_test_models(), scope="module")
-def model(request: pytest.FixtureRequest) -> Model:
-    requested_model = request.param
+async def model(request: pytest.FixtureRequest) -> Model:
+    requested_model: Model = request.param
+    if not await requested_model.is_available():
+        pytest.skip("Skipping model because it is not available.")
     assert isinstance(requested_model, Model)
     return requested_model
 
@@ -54,13 +56,15 @@ def skip_by_model(request: pytest.FixtureRequest, model: Model) -> None:
         pytest.skip("Skipping thinking model")
 
 
-def test_model_available(model: Model) -> None:
-    assert model.is_available()
+@pytest.mark.asyncio
+async def test_model_available(model: Model) -> None:
+    assert await model.is_available()
 
 
-def test_model(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_model(model: Model) -> None:
     context = Context.simple("hi", system_prompt="you need to reply with hello")
-    result: AssistantResponse[str] = model.chat_completion(context.messages)
+    result: AssistantResponse[str] = await model.chat_completion(context.messages)
     print(result)
     assert result.message.content.lower().find("{") == -1
     assert result.message.content.lower().find("hello") >= 0
@@ -68,7 +72,8 @@ def test_model(model: Model) -> None:
         assert result.message.reasoning
 
 
-def test_response_format(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_response_format(model: Model) -> None:
     # The thinking part is supposed to be ignored when using response_format.
     context = Context.simple(
         "what programming languages are used in the linux kernel?", "Show a step by step thinking process"
@@ -80,7 +85,7 @@ def test_response_format(model: Model) -> None:
         model_config = {"title": "languages_list"}
         languages: list[str]
 
-    result = model.chat_completion(
+    result = await model.chat_completion(
         context.messages,
         response_format=ResponseFormat,
     )
@@ -90,7 +95,8 @@ def test_response_format(model: Model) -> None:
 
 
 @pytest.mark.skip_thinking()
-def test_response_format_irrelevant(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_response_format_irrelevant(model: Model) -> None:
     # The thinking part is supposed to be ignored when using response_format.
     context = Context.simple("what is the weather in TLV?", "Show a step by step thinking process")
 
@@ -98,7 +104,7 @@ def test_response_format_irrelevant(model: Model) -> None:
         languages: list[str]
 
     try:
-        result = model.chat_completion(context.messages, response_format=ResponseFormat, token_limit=100)
+        result = await model.chat_completion(context.messages, response_format=ResponseFormat, token_limit=100)
         print(result)
         assert len(result.message.content.languages) > 0
     except ModelTokenLimitExceededError as e:
@@ -107,7 +113,8 @@ def test_response_format_irrelevant(model: Model) -> None:
 
 
 @pytest.mark.skip(reason="Not supported yet")
-def test_required_tools_irrelevant_not_needed(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_required_tools_irrelevant_not_needed(model: Model) -> None:
     context = Context.simple("hi, who are you?")
 
     class WeatherToolParams(BaseModel):
@@ -124,7 +131,7 @@ def test_required_tools_irrelevant_not_needed(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(
+    result: AssistantResponse[str] = await model.chat_completion(
         context.messages, tools=[weather_tool], tool_choice="required"
     )
     print(result)
@@ -133,7 +140,8 @@ def test_required_tools_irrelevant_not_needed(model: Model) -> None:
 
 
 @pytest.mark.skip(reason="Not supported yet")
-def test_required_tools_relevant_not_needed(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_required_tools_relevant_not_needed(model: Model) -> None:
     context = Context.simple(
         "hi, who are you?",
         system_prompt="Think before answering. Use a tool only when there "
@@ -154,7 +162,7 @@ def test_required_tools_relevant_not_needed(model: Model) -> None:
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(
+    result: AssistantResponse[str] = await model.chat_completion(
         context.messages, tools=[final_output_tool], tool_choice="required"
     )
     print(result)
@@ -162,7 +170,8 @@ def test_required_tools_relevant_not_needed(model: Model) -> None:
     assert result.message.tool_calls
 
 
-def test_auto_tools_needed(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_auto_tools_needed(model: Model) -> None:
     context = Context.simple("what is the weather in TelAviv?")
 
     class WeatherToolParams(BaseModel):
@@ -179,7 +188,9 @@ def test_auto_tools_needed(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     # Some models will give output/reasoning, while some don't. The only important part is that we get a tool call.
     assert result.message.tool_calls
@@ -189,7 +200,8 @@ def test_auto_tools_needed(model: Model) -> None:
     assert response == WeatherToolParams(city="TelAviv")
 
 
-def test_auto_tools_relevant_not_needed(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_auto_tools_relevant_not_needed(model: Model) -> None:
     context = Context.simple(
         "hi, who are you?",
         system_prompt="Think before answering. Use a tool only when there is no way to continue without it. Prefer "
@@ -210,7 +222,7 @@ def test_auto_tools_relevant_not_needed(model: Model) -> None:
         "final_output", "Give the final output", greeting, FinalOutputToolParams, FinalOutputToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(
+    result: AssistantResponse[str] = await model.chat_completion(
         context.messages, tools=[final_output_tool], tool_choice="auto"
     )
     print(result)
@@ -219,7 +231,8 @@ def test_auto_tools_relevant_not_needed(model: Model) -> None:
     # assert len(list(result["tool_calls"])) == 0
 
 
-def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
     context = Context.simple("hi, who are you?")
 
     class WeatherToolParams(BaseModel):
@@ -236,14 +249,17 @@ def test_auto_tools_irrelevant_not_needed(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     assert len(result.message.content) > 0
     assert result.message.tool_calls in [None, []]
 
 
 @pytest.mark.skip_model("ollama_chat/qwen3:14b")
-def test_tools_with_content(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_tools_with_content(model: Model) -> None:
     context = Context.simple(
         "What is the weather in the capital of israel like? what do you recommend me to wear?",
         system_prompt="Show a step by step thinking process. Think before making any tool call. Do not provide tool "
@@ -265,7 +281,9 @@ def test_tools_with_content(model: Model) -> None:
         "weather_tool", "Get weather", weather_tool_fn, WeatherToolParams, WeatherToolResponse
     )
 
-    result: AssistantResponse[str] = model.chat_completion(context.messages, tools=[weather_tool], tool_choice="auto")
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[weather_tool], tool_choice="auto"
+    )
     print(result)
     if model.thinking:
         assert result.message.reasoning
@@ -277,11 +295,12 @@ def test_tools_with_content(model: Model) -> None:
     assert response == WeatherToolParams(city="Jerusalem")
 
 
-def test_thinking(model: Model) -> None:
+@pytest.mark.asyncio
+async def test_thinking(model: Model) -> None:
     context = Context.simple(
         "what is the largest country in size?", system_prompt="Show a step by step thinking process"
     )
-    result: AssistantResponse[str] = model.chat_completion(context.messages)
+    result: AssistantResponse[str] = await model.chat_completion(context.messages)
     print(result)
     if model.thinking:
         assert result.message.reasoning

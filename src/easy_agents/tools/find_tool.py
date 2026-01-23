@@ -9,7 +9,7 @@ from easy_agents.core.tool import RunContext, Tool
 from .deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
 
-class _Parameters(BaseModel):
+class FindParameters(BaseModel):
     search_expression: str = Field(description="The regex pattern to search for, using Python's re syntax.")
     paths: list[str] = Field(description="A list of file or directory paths to search within. Globs are not supported.")
     is_dir: bool = Field(description="If True, performs a recursive search through all files in the provided paths.")
@@ -17,7 +17,7 @@ class _Parameters(BaseModel):
     context_after: int = Field(0, description="Number of lines of trailing context to include after each match.")
 
 
-class _Match(BaseModel):
+class FindMatch(BaseModel):
     """A match"""
 
     path: str = Field(description="The path of the match.")
@@ -26,8 +26,8 @@ class _Match(BaseModel):
     match: str = Field(description="The match.")
 
 
-class _Results(BaseModel):
-    matches: list[_Match] = Field(description="List of matches found.")
+class FindResults(BaseModel):
+    matches: list[FindMatch] = Field(description="List of matches found.")
     matches_count: int = Field(description="The number of matches found.")
 
 
@@ -43,40 +43,28 @@ def is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
         return True  # Treat unreadable files as binary/skip
 
 
-async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters) -> _Results:
+async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: FindParameters) -> FindResults:
     """Search for text patterns in files using regular expressions."""
-    matches: list[_Match] = []
+    matches: list[FindMatch] = []
 
     try:
         # Compile the regex pattern
         pattern = re.compile(parameters.search_expression)
     except re.error:
         # Return empty results if regex is invalid
-        return _Results(matches=[], matches_count=0)
+        return FindResults(matches=[], matches_count=0)
 
     # Collect all files to search
     files_to_search: list[Path] = []
+    project_root = Path(deps.project_root)
 
     for path_str in parameters.paths:
         path = Path(path_str)
         if not path.is_absolute():
-            path = Path(deps.project_root) / path
+            path = project_root / path
 
         if not path.exists():
             continue
-
-        # Load gitignore patterns if they exist in the root of the search path
-        spec = None
-        # TODO: Find it better
-        gitignore_path = path / ".gitignore" if path.is_dir() else path.parent / ".gitignore"
-
-        if gitignore_path.exists():
-            try:
-                with open(gitignore_path, encoding="utf-8") as file:
-                    spec = pathspec.PathSpec.from_lines("gitwildmatch", file)
-            except Exception:
-                # spec = None
-                raise
 
         if parameters.is_dir and path.is_dir():
             for f in path.rglob("*"):
@@ -86,8 +74,25 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters
                 if not f.is_file():
                     continue
 
-                relative_path = str(f.relative_to(path))
-                if spec and spec.match_file(relative_path):
+                # Check all .gitignore files from the file up to the project root
+                is_ignored = False
+                current = f
+                while current.parent != current:
+                    gitignore = current.parent / ".gitignore"
+                    if gitignore.exists():
+                        try:
+                            with open(gitignore, encoding="utf-8") as file:
+                                spec = pathspec.PathSpec.from_lines("gitignore", file)
+                                if spec.match_file(str(f.relative_to(current.parent))):
+                                    is_ignored = True
+                                    break
+                        except Exception:
+                            pass
+                    if current.parent == project_root:
+                        break
+                    current = current.parent
+
+                if is_ignored:
                     continue
 
                 if is_binary(f):
@@ -125,16 +130,16 @@ async def _run(_ctx: RunContext, deps: ProjectFilesDeps, parameters: _Parameters
                     )
 
                     matches.append(
-                        _Match(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group())
+                        FindMatch(path=str(file_path), line_number=line_num, line=full_line, match=match_obj.group())
                     )
         except (OSError, UnicodeDecodeError):
             # Skip files that can't be read
             continue
 
-    return _Results(matches=matches, matches_count=len(matches))
+    return FindResults(matches=matches, matches_count=len(matches))
 
 
-find_tool = Tool[_Parameters, _Results, ProjectFilesDeps](
+find_tool = Tool[FindParameters, FindResults, ProjectFilesDeps](
     name="find_tool",
     description=(
         "Search for text patterns in files using regular expressions. Can search single files or recursively "
@@ -142,6 +147,6 @@ find_tool = Tool[_Parameters, _Results, ProjectFilesDeps](
     ),
     run=_run,
     deps_type=project_files_deps_type,
-    parameters_type=_Parameters,
-    results_type=_Results,
+    parameters_type=FindParameters,
+    results_type=FindResults,
 )
