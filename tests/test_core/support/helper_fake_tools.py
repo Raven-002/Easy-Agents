@@ -1,4 +1,4 @@
-from easy_agents.core.tool import RunContext, Tool, ToolDependency
+from easy_agents.core import RunContext, Tool, ToolDependency
 
 from .common_base_models import WeatherQuery, WeatherResult
 

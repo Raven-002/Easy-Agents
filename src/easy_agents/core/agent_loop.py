@@ -1,13 +1,15 @@
 import asyncio
-from collections.abc import Coroutine, Iterable
+from collections.abc import Coroutine, Iterable, Sequence
 from typing import Any
 
 from pydantic import BaseModel
 
-from .context import Context, ToolCall, ToolMessage, UserMessage
+from .context import AnyChatCompletionMessage, Context, ToolCall, ToolMessage, UserMessage
+from .context_refiner import ContextRefiner
 from .model import AssistantResponse, Model
 from .router import Router
-from .tool import RunContext, ToolAny, ToolDepsRegistry
+from .run_context import RunContext, ToolDepsRegistry
+from .tool import ToolAny
 
 type AgentLoopOutputType = BaseModel | str
 
@@ -42,10 +44,16 @@ async def handle_tool_call(
 
 
 async def handle_tools(
-    tool_calls: Iterable[ToolCall],
-    tools: list[ToolAny],
+    tool_calls: Iterable[ToolCall] | None,
+    tools: list[ToolAny] | None,
     run_ctx: RunContext,
-) -> list[ToolMessage]:
+) -> Sequence[AnyChatCompletionMessage]:
+    if not tool_calls:
+        return []
+
+    if not tools:
+        return [UserMessage(content="There are no tools available. Do not use any tool call.")]
+
     tools_map = {tool.name: tool for tool in tools}
     tool_messages: list[ToolMessage] = []
     tool_call_tasks: list[Coroutine[Any, Any, ToolMessage]] = []
@@ -70,40 +78,46 @@ async def handle_tools(
     return tool_messages
 
 
+async def refine_messages(ctx: Context, refiners: list[ContextRefiner] | None) -> None:
+    if not refiners:
+        return
+
+    refined_messages = ctx.messages
+    for refiner in refiners:
+        refined_messages = await refiner.refine_new_messages(ctx.raw_messages, refined_messages)
+    ctx.override_with_refined_messages(refined_messages)
+
+
 async def run_agent_tools_loop(
     model: Model,
     run_context: RunContext,
+    refiners: list[ContextRefiner] | None = None,
     tools: list[ToolAny] | None = None,
 ) -> None:
     while True:
         reply: AssistantResponse[str] = await model.chat_completion(run_context.ctx.messages, tools)
-        run_context.ctx.messages.append(reply.message)
+        run_context.ctx.append_message(reply.message)
+        run_context.ctx.extend_messages(await handle_tools(reply.message.tool_calls, tools, run_context))
+        await refine_messages(run_context.ctx, refiners)
 
         # When there are no tool calls left, the tools loop is finished.
         if not reply.message.tool_calls:
-            return
-
-        if not tools:
-            run_context.ctx.messages.append(
-                UserMessage(content="There are no tools available. Do not use any tool call.")
-            )
-            continue
-
-        run_context.ctx.messages.extend(await handle_tools(reply.message.tool_calls, tools, run_context))
+            break
 
 
 async def run_agent_loop[OutputT: AgentLoopOutputType](
     router: Router,
     ctx: Context,
     output_type: type[OutputT] = str,  # type: ignore
+    refiners: list[ContextRefiner] | None = None,
     tools: list[ToolAny] | None = None,
     deps: ToolDepsRegistry | None = None,
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)
     main_model = await router.route_task(task_descriptions)
     run_context = RunContext(deps=deps or ToolDepsRegistry.empty(), ctx=ctx)
-    await run_agent_tools_loop(main_model, run_context, tools)
+    await run_agent_tools_loop(main_model, run_context, refiners, tools)
     final_output_model = await router.route_task(context_to_final_output_task_description(task_descriptions))
-    ctx.messages.append(UserMessage(content="Provide the final output based on the conversation history."))
+    ctx.append_message(UserMessage(content="Provide the final output based on the conversation history."))
     output_message = await final_output_model.chat_completion(ctx.messages, response_format=output_type)
     return output_message.message.content

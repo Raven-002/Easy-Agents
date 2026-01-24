@@ -5,8 +5,10 @@ from pydantic import BaseModel
 
 from .agent_loop import AgentLoopOutputType, run_agent_loop
 from .context import Context
+from .context_refiner import ContextRefiner
 from .router import Router
-from .tool import ToolAny, ToolDepsRegistry
+from .run_context import ToolDepsRegistry
+from .tool import ToolAny
 
 type AgentInputType = BaseModel | None | str
 type AgentOutputType = AgentLoopOutputType
@@ -26,6 +28,7 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
     context_factory: ContextFactoryFunctionType[InputT]
     input_type: type[InputT] = str  # type: ignore
     output_type: type[OutputT] = str  # type: ignore
+    refiners: list[ContextRefiner] | None = None
     tools: list[ToolAny] = field(default_factory=list)
 
     def _verify_deps(self, deps: ToolDepsRegistry) -> None:
@@ -37,4 +40,4 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
             deps = ToolDepsRegistry.empty()
         self._verify_deps(deps)
         ctx = self.context_factory(input_args, deps)
-        return await run_agent_loop(router, ctx, self.output_type, self.tools, deps=deps)
+        return await run_agent_loop(router, ctx, self.output_type, self.refiners, self.tools, deps=deps)

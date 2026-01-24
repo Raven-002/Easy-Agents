@@ -2,9 +2,7 @@
 
 import pytest
 
-from easy_agents.core import Router
-from easy_agents.core.agent import Agent, SimpleContextFactory
-from easy_agents.core.tool import ToolDependency, ToolDepsRegistry
+from easy_agents.core import Agent, Router, SimpleContextFactory, ToolDependency, ToolDepsRegistry
 from tests.test_core.support.common_base_models import WeatherReport
 from tests.test_core.support.helper_fake_tools import get_user_info_from_str_deps_tool, user_info_dep_type, weather_tool
 

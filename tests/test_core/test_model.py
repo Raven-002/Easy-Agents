@@ -3,10 +3,7 @@
 import pytest
 from pydantic import BaseModel
 
-from easy_agents.core import AssistantResponse
-from easy_agents.core.context import Context
-from easy_agents.core.model import Model, ModelTokenLimitExceededError
-from easy_agents.core.tool import RunContext, Tool
+from easy_agents.core import AssistantResponse, Context, Model, ModelTokenLimitExceededError, RunContext, Tool
 
 
 @pytest.fixture(autouse=True)

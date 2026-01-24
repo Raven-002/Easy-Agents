@@ -4,7 +4,7 @@ from pathlib import Path
 import pathspec
 from pydantic import BaseModel, Field
 
-from easy_agents.core.tool import RunContext, Tool
+from easy_agents.core import RunContext, Tool
 
 from .deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
