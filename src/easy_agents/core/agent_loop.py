@@ -4,8 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .context import AnyChatCompletionMessage, Context, ToolCall, ToolMessage, UserMessage
-from .context_refiner import ContextRefiner
+from .context import AnyChatCompletionMessage, AssistantMessage, Context, ToolCall, ToolMessage, UserMessage
+from .context_refiner import ContextRefiner, MessagesEndsWithAssistantMessage, to_messages_endswith_assistant_message
 from .model import AssistantResponse, Model
 from .router import Router
 from .run_context import RunContext, ToolDepsRegistry
@@ -88,6 +88,25 @@ async def refine_messages(ctx: Context, refiners: list[ContextRefiner] | None) -
     ctx.override_with_refined_messages(refined_messages)
 
 
+async def refine_pre_tool_assistant_message(
+    ctx: Context, refiners: list[ContextRefiner] | None
+) -> AssistantMessage[str]:
+    """Refine the last message in the context before the assistant message and return the refined assistant message."""
+    raw_messages: MessagesEndsWithAssistantMessage[str] = to_messages_endswith_assistant_message(ctx.raw_messages)
+    refined_messages: MessagesEndsWithAssistantMessage[str] = to_messages_endswith_assistant_message(ctx.messages)
+    if not refiners:
+        return refined_messages[-1]
+    if not refined_messages[-1].tool_calls:
+        return refined_messages[-1]
+    refined_assistant_message = refined_messages[-1]
+    for refiner in refiners:
+        refined_assistant_message = await refiner.refine_pre_tool_assistant_message(
+            raw_messages, (*refined_messages[:-1], refined_assistant_message)
+        )
+    ctx.override_with_refined_messages((*refined_messages[:-1], refined_assistant_message))
+    return refined_assistant_message
+
+
 async def run_agent_tools_loop(
     model: Model,
     run_context: RunContext,
@@ -97,11 +116,13 @@ async def run_agent_tools_loop(
     while True:
         reply: AssistantResponse[str] = await model.chat_completion(run_context.ctx.messages, tools)
         run_context.ctx.append_message(reply.message)
-        run_context.ctx.extend_messages(await handle_tools(reply.message.tool_calls, tools, run_context))
+        refined_assistant_message = await refine_pre_tool_assistant_message(run_context.ctx, refiners)
+        tools_messages = await handle_tools(refined_assistant_message.tool_calls, tools, run_context)
+        run_context.ctx.extend_messages(tools_messages)
         await refine_messages(run_context.ctx, refiners)
 
         # When there are no tool calls left, the tools loop is finished.
-        if not reply.message.tool_calls:
+        if not refined_assistant_message.tool_calls:
             break
 
 

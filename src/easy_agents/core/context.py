@@ -149,8 +149,8 @@ type AnyChatCompletionMessage = SystemMessage | UserMessage | AssistantMessage[A
 
 class Context:
     def __init__(self, messages: list[AnyChatCompletionMessage]) -> None:
-        self.__raw_messages: list[AnyChatCompletionMessage] = messages
-        self.__refined_messages: list[AnyChatCompletionMessage] = messages
+        self.__raw_messages: list[AnyChatCompletionMessage] = messages.copy()
+        self.__refined_messages: list[AnyChatCompletionMessage] = messages.copy()
 
     @property
     def messages(self) -> Sequence[AnyChatCompletionMessage]:
