@@ -76,7 +76,12 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
         if issubclass(response_format, BaseModel):
             if not completion_message.content:
                 raise ValueError("Response format is a pydantic model, but no content was returned.")
-            content = response_format.model_validate_json(completion_message.content)
+            try:
+                content = response_format.model_validate_json(completion_message.content)
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to parse response as {response_format}: {e}, content: {completion_message.content}"
+                ) from e
         else:
             content = completion_message.content or ""  # type: ignore
 
