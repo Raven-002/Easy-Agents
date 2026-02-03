@@ -1,5 +1,6 @@
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -11,8 +12,16 @@ from easy_agents.core.router import Router
 script_dir = Path(__file__).parent
 
 
+class ModelsTestExtraSettings(BaseModel):
+    skip_tests: bool = False
+
+
+class ModelsTestSettings(Model):
+    test_settings: ModelsTestExtraSettings
+
+
 class Settings(BaseModel):
-    models: dict[str, Model]
+    models: dict[str, ModelsTestSettings]
     fast_model_name: str
 
 
@@ -38,7 +47,7 @@ def get_settings() -> Settings | None:
     return loaded_settings
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def settings_yaml(request: pytest.FixtureRequest) -> Settings:
     settings = get_settings()
     if settings is None:
@@ -47,16 +56,17 @@ def settings_yaml(request: pytest.FixtureRequest) -> Settings:
     return settings
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def all_models(request: pytest.FixtureRequest, settings_yaml: Settings) -> list[Model]:
-    return list(settings_yaml.models.values())
+    return [m for m in settings_yaml.models.values() if not m.test_settings.skip_tests]
 
 
-def get_test_models() -> Iterator[Model]:
+def get_test_models() -> Generator[Any, Any, None]:
     settings = get_settings()
     if settings is None:
         return
-    yield from settings.models.values()
+    for name, model_obj in settings.models.items():
+        yield pytest.param(model_obj, id=name)
 
 
 @pytest.fixture(params=get_test_models(), scope="module")
@@ -65,18 +75,25 @@ def model(request: pytest.FixtureRequest, settings_yaml: Settings) -> Model:
     Note: The fixture is scoped to the module level to reduce the amount of model switching during testing, in case
     the models are not available simultaneously, but rather swapped, which takes time.
     """
-    requested_model: Model = request.param
-    assert isinstance(requested_model, Model)
+    requested_model: ModelsTestSettings = request.param
+    assert isinstance(requested_model, ModelsTestSettings)
+    if requested_model.test_settings.skip_tests:
+        pytest.skip("Skipping tests because model is marked as skipped.")
     return requested_model
 
 
 @pytest.fixture()
 def fast_model(request: pytest.FixtureRequest, settings_yaml: Settings) -> Model:
-    return settings_yaml.models[settings_yaml.fast_model_name]
+    model = settings_yaml.models[settings_yaml.fast_model_name]
+    if model.test_settings.skip_tests:
+        pytest.skip("Skipping tests because fast model is marked as skipped.")
+    return model
 
 
 @pytest.fixture()
 def simple_router(request: pytest.FixtureRequest, settings_yaml: Settings) -> Router:
+    if settings_yaml.models[settings_yaml.fast_model_name].test_settings.skip_tests:
+        pytest.skip("Skipping tests because fast model is marked as skipped.")
     router = Router(
         models_pool={settings_yaml.fast_model_name: settings_yaml.models[settings_yaml.fast_model_name]},
         router_pool=[settings_yaml.fast_model_name],
@@ -86,8 +103,10 @@ def simple_router(request: pytest.FixtureRequest, settings_yaml: Settings) -> Ro
 
 @pytest.fixture()
 def complex_router(request: pytest.FixtureRequest, settings_yaml: Settings) -> Router:
+    if settings_yaml.models[settings_yaml.fast_model_name].test_settings.skip_tests:
+        pytest.skip("Skipping tests because fast model is marked as skipped.")
     router = Router(
-        models_pool=settings_yaml.models,
+        models_pool={key: m for key, m in settings_yaml.models.items() if not m.test_settings.skip_tests},
         router_pool=[settings_yaml.fast_model_name],
     )
     return router
