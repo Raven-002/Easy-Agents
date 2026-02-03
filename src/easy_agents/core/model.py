@@ -5,7 +5,7 @@ from typing import Any, Literal, get_args
 import litellm
 from pydantic import BaseModel
 
-from .context import AnyChatCompletionMessage, AssistantMessage, UserMessage
+from .context import AnyChatCompletionMessage, AssistantMessage, SystemMessage, UserMessage
 from .tool import ToolAny
 
 type ToolChoiceType = Literal["auto", "none", "required"]
@@ -32,6 +32,10 @@ class Model(BaseModel):
     description: str
     thinking: bool = False
     assume_available: bool = False
+    temperature: float = 0.7
+    override_auto_as_none: bool = False
+    thinking_in_content: Literal["xml_think"] | None = None
+    response_format_handling: Literal["system_prompt"] | None = None
 
     def model_post_init(self, context: Any, /) -> None:
         if self.model_provider == "openai":
@@ -89,14 +93,27 @@ class Model(BaseModel):
             raise TypeError(f"Expected ModelResponse, got {type(final)}")
         return final
 
+    def _fix_reasoning_in_content(self, msg: litellm.Message) -> litellm.Message:
+        if not self.thinking or not self.thinking_in_content or getattr(msg, "reasoning_content", None):
+            return msg
+        if self.thinking_in_content == "xml_think":
+            if not msg.content:
+                raise ValueError("Expected content in message with thinking_in_content=xml_think, got empty content.")
+            parts = msg.content.split("</think>")
+            if 2 < len(parts):
+                raise ValueError(f"Expected a max of one </think> tag in content: {msg}")
+            if len(parts) == 1:
+                return msg
+            return msg.model_copy(update={"content": parts[1], "reasoning_content": parts[0].removeprefix("<think>")})
+        raise ValueError(f"Unknown thinking_in_content: {self.thinking_in_content}")
+
     async def _chat_completion[T: BaseModel | str](
         self,
         messages: Iterable[AnyChatCompletionMessage],
         tools: list[ToolAny] | None = None,
-        tool_choice: ToolChoiceType = "auto",
+        tool_choice: ToolChoiceType | None = None,
         response_format: type[T] = str,  # type: ignore
         assistant_name: str = "",
-        temperature: float = 0.0,
         token_limit: int = 0,
     ) -> AssistantResponse[T]:
         tools_param: list[dict[str, object]] | None = [t.get_json_schema() for t in tools] if tools else None
@@ -104,8 +121,23 @@ class Model(BaseModel):
         response_format_param: type[BaseModel] | None
         if issubclass(response_format, BaseModel):
             response_format_param = response_format
+            if tools:
+                raise ValueError("Cannot specify response format and tools at the same time.")
         else:
             assert response_format is str
+            response_format_param = None
+
+        if tool_choice in [None, "auto"]:
+            tool_choice = None if self.override_auto_as_none else "auto"
+
+        if response_format_param is not None and self.response_format_handling == "system_prompt":
+            messages = [
+                SystemMessage(
+                    content="\n\nYou MUST response with a valid json object. Your entire output must ONLY be a valid "
+                    "json object. The json must be of the following json object schema(a description of the fields): "
+                    f"{response_format_param.model_json_schema()}\n\n"
+                )
+            ] + list(messages)
             response_format_param = None
 
         should_stream = False
@@ -118,7 +150,7 @@ class Model(BaseModel):
             tools=tools_param,
             tool_choice=tool_choice if tools else None,
             response_format=response_format_param,
-            temperature=temperature,
+            temperature=self.temperature,
             stream=should_stream,
             max_tokens=token_limit if token_limit > 0 else None,
         )
@@ -139,6 +171,8 @@ class Model(BaseModel):
         finish_reason: FinishReasonType = final.choices[0].finish_reason or "stop"  # pyright: ignore
         assert finish_reason in get_args(FinishReasonType.__value__)
 
+        msg = self._fix_reasoning_in_content(msg)
+
         if finish_reason == "length":
             raise ModelTokenLimitExceededError(
                 AssistantResponse[str](AssistantMessage.from_litellm_message(msg, str, assistant_name), finish_reason)
@@ -155,11 +189,10 @@ class Model(BaseModel):
         tool_choice: ToolChoiceType = "auto",
         response_format: type[T] = str,  # type: ignore
         assistant_name: str = "",
-        temperature: float = 0.0,
         token_limit: int = 0,
     ) -> AssistantResponse[T]:
         assistant_response = await self._chat_completion(
-            messages, tools, tool_choice, response_format, assistant_name, temperature, token_limit
+            messages, tools, tool_choice, response_format, assistant_name, token_limit
         )
         print(assistant_response)
         return assistant_response
