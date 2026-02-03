@@ -1,5 +1,6 @@
 from .agent import Agent, SimpleContextFactory
 from .context import (
+    AnyChatCompletionMessage,
     AssistantMessage,
     ChatCompletionMessage,
     Context,
@@ -9,7 +10,7 @@ from .context import (
     ToolMessage,
     UserMessage,
 )
-from .context_refiner import ContextRefiner
+from .context_refiner import ContextRefiner, ContextRefinerFactory, MessagesEndsWithAssistantMessage
 from .model import AssistantResponse, Model, ModelTokenLimitExceededError
 from .router import ModelId, Router
 from .run_context import RunContext, ToolDependency, ToolDepEntry, ToolDepsRegistry
@@ -37,4 +38,7 @@ __all__ = [
     "AssistantResponse",
     "ModelTokenLimitExceededError",
     "ContextRefiner",
+    "AnyChatCompletionMessage",
+    "MessagesEndsWithAssistantMessage",
+    "ContextRefinerFactory",
 ]

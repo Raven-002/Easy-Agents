@@ -78,18 +78,18 @@ async def handle_tools(
     return tool_messages
 
 
-async def refine_messages(ctx: Context, refiners: list[ContextRefiner] | None) -> None:
+async def refine_messages(router: Router, ctx: Context, refiners: list[ContextRefiner] | None) -> None:
     if not refiners:
         return
 
     refined_messages = ctx.messages
     for refiner in refiners:
-        refined_messages = await refiner.refine_new_messages(ctx.raw_messages, refined_messages)
+        refined_messages = await refiner.refine_new_messages(router, ctx.raw_messages, refined_messages)
     ctx.override_with_refined_messages(refined_messages)
 
 
 async def refine_pre_tool_assistant_message(
-    ctx: Context, refiners: list[ContextRefiner] | None
+    router: Router, ctx: Context, refiners: list[ContextRefiner] | None
 ) -> AssistantMessage[str]:
     """Refine the last message in the context before the assistant message and return the refined assistant message."""
     raw_messages: MessagesEndsWithAssistantMessage[str] = to_messages_endswith_assistant_message(ctx.raw_messages)
@@ -101,7 +101,7 @@ async def refine_pre_tool_assistant_message(
     refined_assistant_message = refined_messages[-1]
     for refiner in refiners:
         refined_assistant_message = await refiner.refine_pre_tool_assistant_message(
-            raw_messages, (*refined_messages[:-1], refined_assistant_message)
+            router, raw_messages, (*refined_messages[:-1], refined_assistant_message)
         )
     ctx.override_with_refined_messages((*refined_messages[:-1], refined_assistant_message))
     return refined_assistant_message
@@ -109,6 +109,7 @@ async def refine_pre_tool_assistant_message(
 
 async def run_agent_tools_loop(
     model: Model,
+    router: Router,
     run_context: RunContext,
     refiners: list[ContextRefiner] | None = None,
     tools: list[ToolAny] | None = None,
@@ -116,10 +117,10 @@ async def run_agent_tools_loop(
     while True:
         reply: AssistantResponse[str] = await model.chat_completion(run_context.ctx.messages, tools)
         run_context.ctx.append_message(reply.message)
-        refined_assistant_message = await refine_pre_tool_assistant_message(run_context.ctx, refiners)
+        refined_assistant_message = await refine_pre_tool_assistant_message(router, run_context.ctx, refiners)
         tools_messages = await handle_tools(refined_assistant_message.tool_calls, tools, run_context)
         run_context.ctx.extend_messages(tools_messages)
-        await refine_messages(run_context.ctx, refiners)
+        await refine_messages(router, run_context.ctx, refiners)
 
         # When there are no tool calls left, the tools loop is finished.
         if not refined_assistant_message.tool_calls:
@@ -136,8 +137,8 @@ async def run_agent_loop[OutputT: AgentLoopOutputType](
 ) -> OutputT:
     task_descriptions = context_to_task_description(ctx)
     main_model = await router.route_task(task_descriptions)
-    run_context = RunContext(deps=deps or ToolDepsRegistry.empty(), ctx=ctx)
-    await run_agent_tools_loop(main_model, run_context, refiners, tools)
+    run_context = RunContext(deps=deps or ToolDepsRegistry.empty(), ctx=ctx, router=router, main_model=main_model)
+    await run_agent_tools_loop(main_model, router, run_context, refiners, tools)
     final_output_model = await router.route_task(context_to_final_output_task_description(task_descriptions))
     ctx.append_message(UserMessage(content="Provide the final output based on the conversation history."))
     output_message = await final_output_model.chat_completion(ctx.messages, response_format=output_type)

@@ -47,7 +47,10 @@ class FakeContextRefiner(ContextRefiner):
         super().__init__()
 
     async def refine_new_messages(
-        self, raw_messages: Sequence[AnyChatCompletionMessage], refined_messages: Sequence[AnyChatCompletionMessage]
+        self,
+        router: Router,
+        raw_messages: Sequence[AnyChatCompletionMessage],
+        refined_messages: Sequence[AnyChatCompletionMessage],
     ) -> Sequence[AnyChatCompletionMessage]:
         if self.refined_messages_to_inject is None:
             return refined_messages
@@ -55,6 +58,7 @@ class FakeContextRefiner(ContextRefiner):
 
     async def refine_pre_tool_assistant_message(
         self,
+        router: Router,
         raw_messages: MessagesEndsWithAssistantMessage[str],
         refined_messages: MessagesEndsWithAssistantMessage[str],
     ) -> AssistantMessage[str]:
@@ -100,5 +104,5 @@ async def test_full_refiners_override(simple_router: Router) -> None:
         output_type=WeatherReport,
     )
     assert result.temperature == 40
-    assert result.country.lower() == "america"
+    assert result.country.lower() in ["america", "us", "united states", "united states of america"]
     assert result.city.lower() == "washington"

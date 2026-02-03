@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from types import NoneType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .context import Context
+if TYPE_CHECKING:
+    from .context import Context
+    from .model import Model
+    from .router import Router
 
 
 @dataclass(frozen=True)
@@ -46,7 +49,9 @@ class ToolDepsRegistry:
         return ToolDepsRegistry([ToolDepEntry(type=k, value=v) for k, v in deps.items()])
 
 
-@dataclass
+@dataclass(frozen=True)
 class RunContext:
     deps: ToolDepsRegistry
     ctx: Context
+    router: Router
+    main_model: Model

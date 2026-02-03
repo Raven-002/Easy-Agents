@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from .agent_loop import AgentLoopOutputType, run_agent_loop
 from .context import Context
-from .context_refiner import ContextRefiner
+from .context_refiner import ContextRefiner, ContextRefinerFactory
 from .router import Router
 from .run_context import ToolDepsRegistry
 from .tool import ToolAny
@@ -28,7 +28,7 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
     context_factory: ContextFactoryFunctionType[InputT]
     input_type: type[InputT] = str  # type: ignore
     output_type: type[OutputT] = str  # type: ignore
-    refiners: list[ContextRefiner] | None = None
+    refiners_factories: list[ContextRefinerFactory[ContextRefiner]] | None = None
     tools: list[ToolAny] = field(default_factory=list)
 
     def _verify_deps(self, deps: ToolDepsRegistry) -> None:
@@ -40,4 +40,14 @@ class Agent[InputT: AgentInputType, OutputT: AgentOutputType]:
             deps = ToolDepsRegistry.empty()
         self._verify_deps(deps)
         ctx = self.context_factory(input_args, deps)
-        return await run_agent_loop(router, ctx, self.output_type, self.refiners, self.tools, deps=deps)
+        refiners: list[ContextRefiner] | None = None
+        if self.refiners_factories:
+            refiners = [refiner_factory.get_refiner() for refiner_factory in self.refiners_factories]
+        return await run_agent_loop(
+            router,
+            ctx,
+            self.output_type,
+            refiners,
+            self.tools,
+            deps=deps,
+        )
