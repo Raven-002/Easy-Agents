@@ -101,6 +101,15 @@ def simple_router(request: pytest.FixtureRequest, settings_yaml: Settings) -> Ro
     return router
 
 
+@pytest.fixture(scope="module")
+def dynamic_simple_router(request: pytest.FixtureRequest, model: Model) -> Router:
+    router = Router(
+        models_pool={"model": model},
+        router_pool=["model"],
+    )
+    return router
+
+
 @pytest.fixture()
 def complex_router(request: pytest.FixtureRequest, settings_yaml: Settings) -> Router:
     if settings_yaml.models[settings_yaml.fast_model_name].test_settings.skip_tests:
