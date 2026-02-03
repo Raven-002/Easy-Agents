@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from easy_agents.core import Context, RunContext, ToolDepsRegistry
+from easy_agents.core import RunContext, ToolDepsRegistry
 from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 from easy_agents.tools.find_tool import find_tool
 
@@ -24,7 +24,7 @@ def project_root(tmp_path: Path) -> Path:
 def run_context(project_root: Path) -> RunContext:
     """Create a RunContext with ProjectFilesDeps."""
     deps = ToolDepsRegistry.from_map({project_files_deps_type: ProjectFilesDeps(project_root=str(project_root))})
-    return RunContext(deps=deps, ctx=Context.simple(""))
+    return RunContext(deps=deps, ctx=None, router=None, main_model=None)  # type: ignore
 
 
 @pytest.mark.asyncio

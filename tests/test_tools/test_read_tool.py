@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 import pytest
 from pydantic import ValidationError
 
-from easy_agents.core import Context, RunContext, ToolDepsRegistry
+from easy_agents.core import RunContext, ToolDepsRegistry
 from easy_agents.tools.read_tool import read_tool
 
 
@@ -42,7 +42,7 @@ def single_line_file() -> Iterator[str]:
 @pytest.fixture
 def run_context() -> RunContext:
     """Create a basic RunContext for testing."""
-    return RunContext(deps=ToolDepsRegistry.empty(), ctx=Context.simple(""))
+    return RunContext(deps=ToolDepsRegistry.empty(), ctx=None, router=None, main_model=None)  # type: ignore
 
 
 @pytest.mark.asyncio

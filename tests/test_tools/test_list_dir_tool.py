@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from easy_agents.core import Context, RunContext, ToolDepsRegistry
+from easy_agents.core import RunContext, ToolDepsRegistry
 from easy_agents.tools import list_dir_tool
 
 
@@ -58,7 +58,7 @@ def empty_dir() -> Iterator[str]:
 @pytest.fixture
 def run_context() -> RunContext:
     """Create a basic RunContext for testing."""
-    return RunContext(deps=ToolDepsRegistry.empty(), ctx=Context.simple(""))
+    return RunContext(deps=ToolDepsRegistry.empty(), ctx=None, router=None, main_model=None)  # type: ignore
 
 
 @pytest.mark.asyncio
@@ -212,7 +212,7 @@ async def test_list_dir_special_characters() -> None:
         for filename in special_files:
             (base_path / filename).write_text("test")
 
-        run_context = RunContext(deps=ToolDepsRegistry.empty(), ctx=Context.simple(""))
+        run_context = RunContext(deps=ToolDepsRegistry.empty(), ctx=None, router=None, main_model=None)  # type: ignore
         params_dict = {"dir_path": str(base_path)}
         result = await list_dir_tool.run(run_context, json.dumps(params_dict))
 
