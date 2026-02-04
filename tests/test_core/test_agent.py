@@ -8,16 +8,16 @@ from tests.test_core.support.helper_fake_tools import get_user_info_from_str_dep
 
 
 @pytest.mark.asyncio
-async def test_tool_less_agent(simple_router: Router) -> None:
+async def test_tool_less_agent(dynamic_simple_router: Router) -> None:
     agent = Agent[str, str](
         context_factory=SimpleContextFactory("You are a helpful assistant. Give short and concise answers."),
     )
-    result = await agent.run("What is the official capital of Israel?", simple_router)
+    result = await agent.run("What is the official capital of Israel?", dynamic_simple_router)
     assert "Jerusalem" in result
 
 
 @pytest.mark.asyncio
-async def test_weather_agent(simple_router: Router) -> None:
+async def test_weather_agent(dynamic_simple_router: Router) -> None:
     agent = Agent(
         context_factory=SimpleContextFactory(
             "You are a helpful weather assistant. "
@@ -31,8 +31,8 @@ async def test_weather_agent(simple_router: Router) -> None:
         "What is the weather in the user's country's capital?\n"
         "Think step by step before making any tool calls.\n"
         "Do not get political.",
-        simple_router,
-        deps=ToolDepsRegistry.from_map({user_info_dep_type: "35F living in Ramat Gan"}),
+        dynamic_simple_router,
+        deps=ToolDepsRegistry.from_map({user_info_dep_type: "35F living in Ramat Gan, Israel"}),
     )
     assert result.temperature == 4
     assert result.country.lower() == "israel"

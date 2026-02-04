@@ -6,7 +6,8 @@ import litellm
 from pydantic import BaseModel
 
 from .context import AnyChatCompletionMessage, AssistantMessage, SystemMessage, UserMessage
-from .tool import ToolAny
+from .run_context import RunContext
+from .tool import Tool, ToolAny
 
 type ToolChoiceType = Literal["auto", "none", "required"]
 type FinishReasonType = Literal["stop", "length", "tool_calls", "content_filter", "function_call"]
@@ -35,7 +36,8 @@ class Model(BaseModel):
     temperature: float = 0.7
     override_auto_as_none: bool = False
     thinking_in_content: Literal["xml_think"] | None = None
-    response_format_handling: Literal["system_prompt"] | None = None
+    response_format_handling: Literal["system_prompt", "tool_call"] | None = None
+    required_tools_in_system_prompt: bool = False
 
     def model_post_init(self, context: Any, /) -> None:
         if self.model_provider == "openai":
@@ -116,8 +118,7 @@ class Model(BaseModel):
         assistant_name: str = "",
         token_limit: int = 0,
     ) -> AssistantResponse[T]:
-        tools_param: list[dict[str, object]] | None = [t.get_json_schema() for t in tools] if tools else None
-
+        # Handle response format normalization
         response_format_param: type[BaseModel] | None
         if issubclass(response_format, BaseModel):
             response_format_param = response_format
@@ -127,9 +128,7 @@ class Model(BaseModel):
             assert response_format is str
             response_format_param = None
 
-        if tool_choice in [None, "auto"]:
-            tool_choice = None if self.override_auto_as_none else "auto"
-
+        # Handle special response format cases
         if response_format_param is not None and self.response_format_handling == "system_prompt":
             messages = [
                 SystemMessage(
@@ -139,9 +138,38 @@ class Model(BaseModel):
                 )
             ] + list(messages)
             response_format_param = None
+        elif issubclass(response_format, BaseModel) and self.response_format_handling == "tool_call":
+            tool_choice = "required"
+            response_format_param = None
 
+            async def final_output_fn(_1: RunContext, _2: BaseModel) -> None:
+                return
+
+            messages = [
+                SystemMessage(
+                    content="\n\nYou MUST provide your response by using the 'final_output' tool call, even if you do "
+                    "not have enough data to answer. The final_output tool MUST BE CALLED. If you do not have enough "
+                    "data, fill the fields with fake data to make it clear you are missing data if possible, but you "
+                    "must stick to the tool call.\n\n"
+                )
+            ] + list(messages)
+            tools = [Tool("final_output", "Give the final output", final_output_fn, response_format)]
+
+        # Handle tool choice
+        if tool_choice == "required" and not tools:
+            raise ValueError("Cannot use tool_choice=required without specifying tools.")
+
+        if self.required_tools_in_system_prompt and tool_choice == "required":
+            tool_choice = "auto"
+            messages = [SystemMessage(content="\n\nYou MUST response with a valid tool call.\n\n")] + list(messages)
+
+        if tool_choice in [None, "auto"]:
+            tool_choice = None if self.override_auto_as_none else "auto"
+
+        tools_param: list[dict[str, object]] | None = [t.get_json_schema() for t in tools] if tools else None
+
+        # Complete
         should_stream = False
-
         completion = await litellm.acompletion(  # pyright: ignore [reportUnknownMemberType]
             model=f"{self.model_provider}/{self.model_name}",
             api_base=self.api_base,
@@ -177,6 +205,23 @@ class Model(BaseModel):
             raise ModelTokenLimitExceededError(
                 AssistantResponse[str](AssistantMessage.from_litellm_message(msg, str, assistant_name), finish_reason)
             )
+
+        if issubclass(response_format, BaseModel) and self.response_format_handling == "tool_call":
+            if not msg.tool_calls or len(msg.tool_calls) != 1:
+                raise ValueError(f"Expected tool calls in response with tool_call response format handling. got: {msg}")
+            if (
+                not msg.tool_calls[0].function
+                or not msg.tool_calls[0].function.arguments
+                or msg.tool_calls[0].function.name != "final_output"
+            ):
+                raise ValueError(
+                    "Expected tool call with name final_output in response with tool_call response format handling. "
+                    f"got{msg}"
+                )
+            msg.content = msg.tool_calls[0].function.arguments
+            msg.tool_calls = None
+            finish_reason = "stop"
+
         return AssistantResponse[T](
             message=AssistantMessage.from_litellm_message(msg, response_format, assistant_name),
             finish_reason=finish_reason,
