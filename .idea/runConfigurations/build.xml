@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="build" type="JustRunConfiguration" factoryName="JustRunConfiguration">
+    <option name="envVariables" />
+    <option name="fileName" />
+    <option name="recipeArgs" />
+    <option name="recipeName" value="build" />
+    <method v="2" />
+  </configuration>
+</component>
