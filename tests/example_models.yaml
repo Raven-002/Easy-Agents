@@ -1,29 +1,44 @@
 models:
-  qwen3-coder:
-    model_provider: "ollama_chat"
-    model_name: "hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q8_K_XL"
-    description: ""
-    thinking: false
-    assume_available: true
-  glm-z1:
-    model_provider: "ollama_chat"
-    model_name: "glm-z1-9b"  # Based on "hf.co/unsloth/GLM-Z1-9B-0414-GGUF:Q6_K_XL"
-    description: ""
-    thinking: true
-    assume_available: true
-  qwen3-next:
-    model_provider: "openai"
-    model_name: "unsloth/Qwen3-Next-80B-A3B-Instruct-GGUF:Q4_K_XL"
-    api_base: "http://localhost:8080/v1"
-    api_key: "llamacpp"
-    description: ""
-    thinking: false
   glm-4.7-flash:
     model_provider: "openai"
-    model_name: "ngxson/GLM-4.7-Flash-GGUF:Q4_K_M"
+    model_name: "glm-4.7-flash"
     api_base: "http://localhost:8080/v1"
     api_key: "llamacpp"
     description: ""
     thinking: true
+    tool_call_args_type_in_context: "json_object"
+    required_tools_in_system_prompt: true
+    response_format_handling: "tool_call"
+    test_settings:
+      skip_tests: false
+  gpt-oss:
+    model_provider: "openai"
+    model_name: "gpt-oss"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    thinking: true
+    test_settings:
+      skip_tests: true
+  qwen3-coder:
+    model_provider: "openai"
+    model_name: "qwen3-coder"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    response_format_handling: "tool_call"
+    override_auto_as_none: true
+    test_settings:
+      skip_tests: false
+  qwen3-coder-next:
+    model_provider: "openai"
+    model_name: "qwen-coder-next"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    response_format_handling: "tool_call"
+    override_auto_as_none: true
+    test_settings:
+      skip_tests: true
 
 fast_model_name: "qwen3-coder"
