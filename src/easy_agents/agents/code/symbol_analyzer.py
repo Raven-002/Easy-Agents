@@ -3,7 +3,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from easy_agents.core import Agent, Context, ToolDepsRegistry
-from easy_agents.refiners import memory_refiner_factory
 from easy_agents.tools import find_tool, read_tool
 from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps
 
@@ -63,6 +62,5 @@ symbol_analyzer = Agent[SymbolAnalysisRequest, SymbolAnalysis](
     context_factory=symbol_analyzer_context_creator,
     input_type=SymbolAnalysisRequest,
     output_type=SymbolAnalysis,
-    refiners_factories=[memory_refiner_factory],
     tools=[read_tool, find_tool],
 )
