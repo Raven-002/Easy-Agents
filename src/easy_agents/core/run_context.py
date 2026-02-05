@@ -52,6 +52,6 @@ class ToolDepsRegistry:
 @dataclass(frozen=True)
 class RunContext:
     deps: ToolDepsRegistry
-    ctx: 'Context'
-    router: 'Router'
-    main_model: 'Model'
+    ctx: "Context"
+    router: "Router"
+    main_model: "Model"
