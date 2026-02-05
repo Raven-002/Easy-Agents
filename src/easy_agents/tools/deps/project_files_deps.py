@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from easy_agents.core.tool import ToolDependency
+from easy_agents.core import ToolDependency
 
 
 class ProjectFilesDeps(BaseModel):

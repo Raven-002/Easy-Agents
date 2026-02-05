@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from easy_agents.core.tool import RunContext, Tool
+from easy_agents.core import RunContext, Tool
 
 
 class ListDirParameters(BaseModel):

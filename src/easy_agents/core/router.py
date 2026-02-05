@@ -86,6 +86,8 @@ class Router(BaseModel):
 
     async def route_task(self, task_description: str) -> Model:
         # TODO: Support no good model, identifying unavailable chosen model.
+        if len(self.models_pool) == 1:
+            return next(iter(self.models_pool.values()))
         router_model = await self.get_active_router()
         models_registry = await self.get_models_descriptions_and_status()
         messages: list[AnyChatCompletionMessage] = [

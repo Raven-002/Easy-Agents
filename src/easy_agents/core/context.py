@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from collections.abc import Sequence
 from typing import Any, Literal
 
 import litellm
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 __all__ = [
     "Context",
@@ -23,6 +23,7 @@ type RoleType = Literal["system", "user", "assistant", "tool"]
 
 class ChatCompletionMessage[RoleT: RoleType](BaseModel, ABC):
     role: RoleT
+    refinement_metadata: dict[str, Any] = Field(default_factory=dict)
 
     @abstractmethod
     def to_litellm_message(
@@ -75,7 +76,12 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
         if issubclass(response_format, BaseModel):
             if not completion_message.content:
                 raise ValueError("Response format is a pydantic model, but no content was returned.")
-            content = response_format.model_validate_json(completion_message.content)
+            try:
+                content = response_format.model_validate_json(completion_message.content)
+            except Exception as e:
+                raise ValueError(
+                    f"Failed to parse response as {response_format}: {e}, content: {completion_message.content}"
+                ) from e
         else:
             content = completion_message.content or ""  # type: ignore
 
@@ -146,9 +152,28 @@ class ToolMessage(ChatCompletionMessage[Literal["tool"]]):
 type AnyChatCompletionMessage = SystemMessage | UserMessage | AssistantMessage[Any] | ToolMessage
 
 
-@dataclass
 class Context:
-    messages: list[AnyChatCompletionMessage]
+    def __init__(self, messages: list[AnyChatCompletionMessage]) -> None:
+        self.__raw_messages: list[AnyChatCompletionMessage] = messages.copy()
+        self.__refined_messages: list[AnyChatCompletionMessage] = messages.copy()
+
+    @property
+    def messages(self) -> Sequence[AnyChatCompletionMessage]:
+        return tuple(self.__refined_messages)
+
+    @property
+    def raw_messages(self) -> Sequence[AnyChatCompletionMessage]:
+        return tuple(self.__raw_messages)
+
+    def extend_messages(self, messages: Sequence[AnyChatCompletionMessage]) -> None:
+        self.__refined_messages.extend(messages)
+        self.__raw_messages.extend(messages)
+
+    def append_message(self, message: AnyChatCompletionMessage) -> None:
+        self.extend_messages([message])
+
+    def override_with_refined_messages(self, messages: Sequence[AnyChatCompletionMessage]) -> None:
+        self.__refined_messages = list(messages)
 
     @classmethod
     def simple(cls, prompt: str, system_prompt: str | None = None) -> "Context":

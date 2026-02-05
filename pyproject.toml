@@ -68,9 +68,8 @@ changelog = "https://github.com/Raven-002/easy_agents/blob/master/changelog.md"
 # --- Tools --------------------------------------------------------------------
 [tool.pytest.ini_options]
 pythonpath = [".", "tests"]
-addopts = "--import-mode=importlib"
+addopts = "--import-mode=importlib -s"
 asyncio_mode = "auto"
-
 [tool.ty]
 # All rules are enabled as "error" by default; no need to specify unless overriding.
 # Example override: relax a rule for the entire project (uncomment if needed).
