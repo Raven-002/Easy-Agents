@@ -80,7 +80,8 @@ class AssistantMessage[T: BaseModel | str](ChatCompletionMessage[Literal["assist
                 content = response_format.model_validate_json(completion_message.content)
             except Exception as e:
                 raise ValueError(
-                    f"Failed to parse response as {response_format}: {e}, content: {completion_message.content}"
+                    f"Failed to parse response as {response_format}: {type(e).__name__}({e.args}), content: "
+                    f"{completion_message.content}"
                 ) from e
         else:
             content = completion_message.content or ""  # type: ignore
