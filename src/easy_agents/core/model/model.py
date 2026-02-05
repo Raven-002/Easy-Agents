@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Literal, get_args
@@ -25,6 +26,119 @@ class ModelTokenLimitExceededError(Exception):
         self.partial_response = partial_response
 
 
+@dataclass
+class ModelCompletionRequest[T: BaseModel | str]:
+    messages: list[AnyChatCompletionMessage]
+    tools: list[ToolAny] | None = None
+    tool_choice: ToolChoiceType | None = "auto"
+    response_format: type[T] = str  # type: ignore[assignment]
+    assistant_name: str = ""
+    token_limit: int = 0
+
+
+@dataclass
+class ModelCompletionResponse:
+    msg: litellm.Message
+    finish_reason: FinishReasonType
+
+
+class ModelApiAdapter(ABC):
+    @abstractmethod
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        pass
+
+    @abstractmethod
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        pass
+
+
+class ApiAdapterStructuredOutputAsTool(ModelApiAdapter):
+    def __init__(self) -> None:
+        self.is_expecting_structured_output = False
+
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        if request.response_format is str:
+            return
+
+        async def final_output_fn(_1: RunContext, _2: BaseModel) -> None:
+            return
+
+        request.messages = [
+            SystemMessage(
+                content="\n\nYou MUST provide your response by using the 'final_output' tool call, even if you do "
+                "not have enough data to answer. The final_output tool MUST BE CALLED. If you do not have enough "
+                "data, fill the fields with fake data to make it clear you are missing data if possible, but you "
+                "must stick to the tool call.\n\n"
+            )
+        ] + list(request.messages)
+        request.tools = [Tool("final_output", "Give the final output", final_output_fn, request.response_format)]
+        request.tool_choice = "required"
+        request.response_format = str
+        self.is_expecting_structured_output = True
+
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        if not self.is_expecting_structured_output:
+            return
+
+        if not response.msg.tool_calls or len(response.msg.tool_calls) != 1:
+            raise ValueError(
+                f"Expected tool calls in response with tool_call response format handling. got: {response.msg}"
+            )
+
+        if (
+            not response.msg.tool_calls[0].function
+            or not response.msg.tool_calls[0].function.arguments
+            or response.msg.tool_calls[0].function.name != "final_output"
+        ):
+            raise ValueError(
+                "Expected tool call with name final_output in response with tool_call response format handling. "
+                f"got{response.msg}"
+            )
+        response.msg.content = response.msg.tool_calls[0].function.arguments
+        response.msg.tool_calls = None
+        response.finish_reason = "stop"
+        self.is_expecting_structured_output = False
+
+
+class ApiAdapterExtractXmlReasoningFromContent(ModelApiAdapter):
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        return
+
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        if response.msg.reasoning_content or not response.msg.content:
+            # Reasoning content already set or no content - no thinking to extract
+            return
+        parts = response.msg.content.split("</think>")
+
+        if len(parts) == 1:
+            # No </think> tag found - no thinking generated
+            return
+
+        if len(parts) != 2:
+            raise ValueError(f"Expected a max of one </think> tag in content: {response.msg}")
+
+        response.msg.content = parts[1]
+        response.msg.reasoning_content = parts[0].removeprefix("<think>")
+
+
+class ApiAdapterSetRequiredToolsAsPartOfSystemPrompt(ModelApiAdapter):
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        if request.tool_choice == "required":
+            request.tool_choice = "auto"
+
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        return
+
+
+class ApiAdapterSetAutoToolsAsNone(ModelApiAdapter):
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        if request.tool_choice == "auto":
+            request.tool_choice = None
+
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        return
+
+
 class Model(BaseModel):
     api_base: str | None = None
     api_key: str | None = None
@@ -33,7 +147,7 @@ class Model(BaseModel):
     description: str
     thinking: bool = False
     assume_available: bool = False
-    temperature: float = 0.7
+    temperature: float | None = None
     override_auto_as_none: bool = False
     thinking_in_content: Literal["xml_think"] | None = None
     response_format_handling: Literal["system_prompt", "tool_call"] | None = None
@@ -62,169 +176,75 @@ class Model(BaseModel):
         except Exception as e:
             raise RuntimeError(f"Unexpected error while checking model availability: {e}") from e
 
+    def _get_adapters_chain(self) -> list[ModelApiAdapter]:
+        chain: list[ModelApiAdapter] = []
+        if self.thinking_in_content:
+            chain.append(ApiAdapterExtractXmlReasoningFromContent())
+        match self.response_format_handling:
+            case "tool_call":
+                chain.append(ApiAdapterStructuredOutputAsTool())
+            case "system_prompt":
+                chain.append(ApiAdapterSetRequiredToolsAsPartOfSystemPrompt())
+            case None:
+                pass
+        if self.override_auto_as_none:
+            chain.append(ApiAdapterSetAutoToolsAsNone())
+        if self.required_tools_in_system_prompt:
+            chain.append(ApiAdapterSetRequiredToolsAsPartOfSystemPrompt())
+        return chain
+
     @staticmethod
-    def _handle_completion_stream(stream: litellm.CustomStreamWrapper) -> litellm.ModelResponse:
-        chunks: list[litellm.ModelResponseStream] = []
-        state: Literal["Start", "Reasoning", "Content"] = "Start"
-        for chunk in stream:
-            chunks.append(chunk)
-            delta = chunk.choices[0].delta
-            reasoning_content = getattr(delta, "reasoning_content", None)
-            if reasoning_content:
-                assert isinstance(reasoning_content, str)
-                if state == "Start":
-                    print("Reasoning:")
-                if state == "Content":
-                    print("\nReasoning:")
-                state = "Reasoning"
-                print(reasoning_content, end="", flush=True)
-            elif delta.content:  # pyright: ignore [reportUnknownMemberType]
-                # noinspection PySimplifyBooleanCheck
-                if state == "Reasoning":
-                    print("\n\n", end="")
-                state = "Content"
-                print(delta.content, end="", flush=True)  # pyright: ignore
-            elif delta.tool_calls:
-                for tool_call in delta.tool_calls:
-                    if tool_call.function and tool_call.function.name:
-                        print(f"\nTool Call: {tool_call.function.name}")
-        print("\n\n", end="")
+    def _completion_to_response(completion: litellm.ModelResponse | Any) -> ModelCompletionResponse:
+        if not isinstance(completion, litellm.ModelResponse):  # pyright: ignore [reportUnnecessaryIsInstance]
+            raise TypeError(f"Expected Stream, got {type(completion)}")
+        final: litellm.ModelResponse = completion
+        assert isinstance(final.choices[0], litellm.Choices)
+        msg: litellm.Message | Any = final.choices[0].message
+        assert isinstance(msg, litellm.Message)
+        finish_reason: FinishReasonType | Any = final.choices[0].finish_reason or "stop"  # pyright: ignore
+        assert finish_reason in get_args(FinishReasonType.__value__)
+        return ModelCompletionResponse(msg, finish_reason)
 
-        final = litellm.stream_chunk_builder(chunks)  # pyright: ignore [reportUnknownMemberType]
-        if not isinstance(final, litellm.ModelResponse):
-            raise TypeError(f"Expected ModelResponse, got {type(final)}")
-        return final
+    async def _chat_completion[T: BaseModel | str](self, request: ModelCompletionRequest[T]) -> AssistantResponse[T]:
+        if issubclass(request.response_format, BaseModel) and request.tools:
+            raise ValueError("Cannot specify response format and tools at the same time.")
 
-    def _fix_reasoning_in_content(self, msg: litellm.Message) -> litellm.Message:
-        if not self.thinking or not self.thinking_in_content or getattr(msg, "reasoning_content", None):
-            return msg
-        if self.thinking_in_content == "xml_think":
-            if not msg.content:
-                raise ValueError("Expected content in message with thinking_in_content=xml_think, got empty content.")
-            parts = msg.content.split("</think>")
-            if 2 < len(parts):
-                raise ValueError(f"Expected a max of one </think> tag in content: {msg}")
-            if len(parts) == 1:
-                return msg
-            return msg.model_copy(update={"content": parts[1], "reasoning_content": parts[0].removeprefix("<think>")})
-        raise ValueError(f"Unknown thinking_in_content: {self.thinking_in_content}")
+        original_response_format = request.response_format
 
-    async def _chat_completion[T: BaseModel | str](
-        self,
-        messages: Iterable[AnyChatCompletionMessage],
-        tools: list[ToolAny] | None = None,
-        tool_choice: ToolChoiceType | None = None,
-        response_format: type[T] = str,  # type: ignore
-        assistant_name: str = "",
-        token_limit: int = 0,
-    ) -> AssistantResponse[T]:
-        # Handle response format normalization
-        response_format_param: type[BaseModel] | None
-        if issubclass(response_format, BaseModel):
-            response_format_param = response_format
-            if tools:
-                raise ValueError("Cannot specify response format and tools at the same time.")
-        else:
-            assert response_format is str
-            response_format_param = None
+        adapters = self._get_adapters_chain()
+        for adapter in adapters:
+            adapter.adjust_request(request)
 
-        # Handle special response format cases
-        if response_format_param is not None and self.response_format_handling == "system_prompt":
-            messages = [
-                SystemMessage(
-                    content="\n\nYou MUST response with a valid json object. Your entire output must ONLY be a valid "
-                    "json object. The json must be of the following json object schema(a description of the fields): "
-                    f"{response_format_param.model_json_schema()}\n\n"
-                )
-            ] + list(messages)
-            response_format_param = None
-        elif issubclass(response_format, BaseModel) and self.response_format_handling == "tool_call":
-            tool_choice = "required"
-            response_format_param = None
-
-            async def final_output_fn(_1: RunContext, _2: BaseModel) -> None:
-                return
-
-            messages = [
-                SystemMessage(
-                    content="\n\nYou MUST provide your response by using the 'final_output' tool call, even if you do "
-                    "not have enough data to answer. The final_output tool MUST BE CALLED. If you do not have enough "
-                    "data, fill the fields with fake data to make it clear you are missing data if possible, but you "
-                    "must stick to the tool call.\n\n"
-                )
-            ] + list(messages)
-            tools = [Tool("final_output", "Give the final output", final_output_fn, response_format)]
-
-        # Handle tool choice
-        if tool_choice == "required" and not tools:
-            raise ValueError("Cannot use tool_choice=required without specifying tools.")
-
-        if self.required_tools_in_system_prompt and tool_choice == "required":
-            tool_choice = "auto"
-            messages = [SystemMessage(content="\n\nYou MUST response with a valid tool call.\n\n")] + list(messages)
-
-        if tool_choice in [None, "auto"]:
-            tool_choice = None if self.override_auto_as_none else "auto"
-
-        tools_param: list[dict[str, object]] | None = [t.get_json_schema() for t in tools] if tools else None
-
-        # Complete
-        should_stream = False
         completion = await litellm.acompletion(  # pyright: ignore [reportUnknownMemberType]
             model=f"{self.model_provider}/{self.model_name}",
             api_base=self.api_base,
             api_key=self.api_key,
-            messages=[m.to_litellm_message().model_dump(exclude_none=True) for m in messages],
-            tools=tools_param,
-            tool_choice=tool_choice if tools else None,
-            response_format=response_format_param,
+            messages=[m.to_litellm_message().model_dump(exclude_none=True) for m in request.messages],
+            tools=[t.get_json_schema() for t in request.tools] if request.tools else None,
+            tool_choice=request.tool_choice if request.tools else None,
+            response_format=request.response_format if issubclass(request.response_format, BaseModel) else None,
             temperature=self.temperature,
-            stream=should_stream,
-            max_tokens=token_limit if token_limit > 0 else None,
+            stream=False,
+            max_tokens=request.token_limit if request.token_limit > 0 else None,
         )
 
-        final: litellm.ModelResponse
-        if should_stream:
-            if not isinstance(completion, litellm.CustomStreamWrapper):  # pyright: ignore [reportUnnecessaryIsInstance]
-                raise TypeError(f"Expected Stream, got {type(completion)}")
-            final = self._handle_completion_stream(completion)
-        else:
-            if not isinstance(completion, litellm.ModelResponse):  # pyright: ignore [reportUnnecessaryIsInstance]
-                raise TypeError(f"Expected Stream, got {type(completion)}")
-            final = completion
+        response = self._completion_to_response(completion)
+        for adapter in adapters[::-1]:
+            adapter.adjust_response(response)
 
-        msg: litellm.Message = final.choices[0].message  # pyright: ignore
-        assert isinstance(msg, litellm.Message)
-
-        finish_reason: FinishReasonType = final.choices[0].finish_reason or "stop"  # pyright: ignore
-        assert finish_reason in get_args(FinishReasonType.__value__)
-
-        msg = self._fix_reasoning_in_content(msg)
-
-        if finish_reason == "length":
+        if response.finish_reason == "length":
             raise ModelTokenLimitExceededError(
-                AssistantResponse[str](AssistantMessage.from_litellm_message(msg, str, assistant_name), finish_reason)
+                AssistantResponse[str](
+                    AssistantMessage.from_litellm_message(response.msg, str, request.assistant_name),
+                    response.finish_reason,
+                )
             )
 
-        if issubclass(response_format, BaseModel) and self.response_format_handling == "tool_call":
-            if not msg.tool_calls or len(msg.tool_calls) != 1:
-                raise ValueError(f"Expected tool calls in response with tool_call response format handling. got: {msg}")
-            if (
-                not msg.tool_calls[0].function
-                or not msg.tool_calls[0].function.arguments
-                or msg.tool_calls[0].function.name != "final_output"
-            ):
-                raise ValueError(
-                    "Expected tool call with name final_output in response with tool_call response format handling. "
-                    f"got{msg}"
-                )
-            msg.content = msg.tool_calls[0].function.arguments
-            msg.tool_calls = None
-            finish_reason = "stop"
-
         return AssistantResponse[T](
-            message=AssistantMessage.from_litellm_message(msg, response_format, assistant_name),
-            finish_reason=finish_reason,
+            message=AssistantMessage.from_litellm_message(
+                response.msg, original_response_format, request.assistant_name
+            ),
+            finish_reason=response.finish_reason,
         )
 
     async def chat_completion[T: BaseModel | str](
@@ -236,8 +256,14 @@ class Model(BaseModel):
         assistant_name: str = "",
         token_limit: int = 0,
     ) -> AssistantResponse[T]:
-        assistant_response = await self._chat_completion(
-            messages, tools, tool_choice, response_format, assistant_name, token_limit
+        request = ModelCompletionRequest[T](
+            list(messages),
+            tools,
+            tool_choice,
+            response_format,
+            assistant_name,
+            token_limit,
         )
+        assistant_response = await self._chat_completion(request)
         print(assistant_response)
-        return assistant_response
+        return assistant_response  # type: ignore
