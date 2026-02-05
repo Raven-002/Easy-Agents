@@ -1,1 +1,0 @@
-from .gitlab_api import GitlabMergeRequestApi as GitlabMergeRequestApi
