@@ -494,3 +494,42 @@ async def test_thinking(model: Model) -> None:
     else:
         assert not result.message.reasoning
         assert result.message.content.lower().find("step") >= 0
+
+
+@pytest.mark.asyncio
+async def test_tools_description(model: Model) -> None:
+    context = Context.simple(
+        "Hello!", system_prompt="Reply the user with a greeting with their name. Use the correct tool."
+    )
+
+    class ToolParamsA(BaseModel):
+        """Get the user's info."""
+
+        p1: str = Field(..., description="What to get, 'name' or 'age'")
+        p2: str = Field(..., description="Reasoning for the request.")
+
+    class ToolParamsB(BaseModel):
+        """crash the program. Should never be used."""
+
+        # Not all tools can see the params docstring, so it is also added in the field to make sure it is seen.
+        p1: str = Field(..., description="Reasoning for the crash request. This tool should never be used.")
+
+    async def tool_a_fn(_ctx: RunContext, params: ToolParamsA) -> str:
+        print(params)
+        return "hi"
+
+    async def tool_b_fn(_ctx: RunContext, params: ToolParamsB) -> str:
+        print(params)
+        return "hi"
+
+    tool_a = Tool[ToolParamsA, str, None]("tool_a", "get info", tool_a_fn, ToolParamsA, str)
+
+    tool_b = Tool[ToolParamsB, str, None]("tool_b", "get user name", tool_b_fn, ToolParamsB, str)
+
+    result: AssistantResponse[str] = await model.chat_completion(
+        context.messages, tools=[tool_a, tool_b], tool_choice="auto"
+    )
+    print(result)
+    assert result.message.tool_calls
+    assert len(result.message.tool_calls) == 1
+    assert result.message.tool_calls[0].function.name == "tool_a"
