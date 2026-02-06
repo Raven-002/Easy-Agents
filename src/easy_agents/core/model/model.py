@@ -57,7 +57,7 @@ class ApiAdapterStructuredOutputAsTool(ModelApiAdapter):
         self.is_expecting_structured_output = False
 
     def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
-        if request.response_format is str:
+        if not issubclass(request.response_format, BaseModel):
             return
 
         async def final_output_fn(_1: RunContext, _2: BaseModel) -> None:
@@ -71,7 +71,15 @@ class ApiAdapterStructuredOutputAsTool(ModelApiAdapter):
                 "must stick to the tool call.\n\n"
             )
         ] + list(request.messages)
-        request.tools = [Tool("final_output", "Give the final output", final_output_fn, request.response_format)]
+        request.tools = [
+            Tool(
+                "final_output",
+                "Give the final output as a structured response in this tool's arguments. The arguments are "
+                f"of type: {request.response_format.__name__} (description: {request.response_format.__doc__})",
+                final_output_fn,
+                request.response_format,
+            )
+        ]
         request.tool_choice = "required"
         request.response_format = str
         self.is_expecting_structured_output = True
