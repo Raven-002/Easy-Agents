@@ -1,0 +1,44 @@
+models:
+  glm-4.7-flash:
+    model_provider: "openai"
+    model_name: "glm-4.7-flash"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    thinking: true
+    tool_call_args_type_in_context: "json_object"
+    required_tools_in_system_prompt: true
+    response_format_handling: "tool_call"
+    test_settings:
+      skip_tests: false
+  gpt-oss:
+    model_provider: "openai"
+    model_name: "gpt-oss"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    thinking: true
+    test_settings:
+      skip_tests: true
+  qwen3-coder:
+    model_provider: "openai"
+    model_name: "qwen3-coder"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    response_format_handling: "tool_call"
+    override_auto_as_none: true
+    test_settings:
+      skip_tests: false
+  qwen3-coder-next:
+    model_provider: "openai"
+    model_name: "qwen-coder-next"
+    api_base: "http://localhost:8080/v1"
+    api_key: "llamacpp"
+    description: ""
+    response_format_handling: "tool_call"
+    override_auto_as_none: true
+    test_settings:
+      skip_tests: true
+
+fast_model_name: "qwen3-coder"
