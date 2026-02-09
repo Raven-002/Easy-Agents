@@ -65,10 +65,10 @@ def print_symbol_analysis(analysis: SymbolAnalysis):
 
 
 @pytest.mark.asyncio
-async def test_agent(simple_router: Router, pytestconfig: pytest.Config) -> None:
+async def test_agent(dynamic_simple_router: Router, pytestconfig: pytest.Config) -> None:
     result = await symbol_analyzer.run(
         SymbolAnalysisRequest(symbol_name="Agent"),
-        simple_router,
+        dynamic_simple_router,
         deps=ToolDepsRegistry.from_map(
             {project_files_deps_type: ProjectFilesDeps(project_root=str(pytestconfig.rootpath))}
         ),
