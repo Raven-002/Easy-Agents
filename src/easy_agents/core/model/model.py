@@ -62,8 +62,6 @@ class Model(BaseModel):
 
     def _get_adapters_chain(self) -> list[ModelApiAdapter]:
         chain: list[ModelApiAdapter] = []
-        if self.thinking_in_content:
-            chain.append(ApiAdapterExtractXmlReasoningFromContent())
         match self.response_format_handling:
             case "tool_call":
                 chain.append(ApiAdapterStructuredOutputAsTool())
@@ -75,6 +73,8 @@ class Model(BaseModel):
             chain.append(ApiAdapterSetAutoToolsAsNone())
         if self.required_tools_in_system_prompt:
             chain.append(ApiAdapterSetRequiredToolsAsPartOfSystemPrompt())
+        if self.thinking_in_content:
+            chain.append(ApiAdapterExtractXmlReasoningFromContent())
         return chain
 
     @staticmethod
