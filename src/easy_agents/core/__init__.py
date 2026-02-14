@@ -14,12 +14,13 @@ from .context_refiner import ContextRefiner, ContextRefinerFactory, MessagesEnds
 from .model import AssistantResponse, Model, ModelTokenLimitExceededError
 from .router import ModelId, Router
 from .run_context import RunContext, ToolDependency, ToolDepEntry, ToolDepsRegistry
-from .tool import Tool
+from .tool import Tool, ToolAny
 
 __all__ = [
     "Agent",
     "SimpleContextFactory",
     "Tool",
+    "ToolAny",
     "RunContext",
     "ToolDependency",
     "ToolDepsRegistry",
