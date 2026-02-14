@@ -34,15 +34,14 @@ class ToolDepEntry[T]:
 
 @dataclass
 class ToolDepsRegistry:
-    list: list[ToolDepEntry[Any]]
     deps_map: dict[str, Any] = field(init=False, default_factory=dict)
 
-    def __post_init__(self) -> None:
-        self.deps_map = {d.type.key: d.value for d in self.list}
+    def __init__(self, deps_list: list[ToolDepEntry[Any]]) -> None:
+        self.deps_map = {d.type.key: d.value for d in deps_list}
 
     @staticmethod
     def empty() -> "ToolDepsRegistry":
-        return ToolDepsRegistry(list=[])
+        return ToolDepsRegistry(deps_list=[])
 
     @staticmethod
     def from_map(deps: dict[ToolDependency[Any], Any]) -> "ToolDepsRegistry":

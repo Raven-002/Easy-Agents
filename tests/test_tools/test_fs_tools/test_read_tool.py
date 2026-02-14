@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from easy_agents.core import RunContext, ToolDepsRegistry
-from easy_agents.tools.read_tool import read_tool
+from easy_agents.tools.fs_tools.read_tool import read_tool
 
 
 @pytest.fixture
