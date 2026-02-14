@@ -7,7 +7,7 @@ from rich.panel import Panel
 
 from easy_agents.agents.code.symbol_analyzer import SymbolAnalysis, SymbolAnalysisRequest, symbol_analyzer
 from easy_agents.core import Router, ToolDepsRegistry
-from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
+from easy_agents.tools.fs_tools.deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
 
 
 def print_symbol_analysis(analysis: SymbolAnalysis):

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from easy_agents.core import RunContext, ToolDepsRegistry
-from easy_agents.tools import list_dir_tool
+from easy_agents.tools.fs_tools import list_dir_tool
 
 
 @pytest.fixture

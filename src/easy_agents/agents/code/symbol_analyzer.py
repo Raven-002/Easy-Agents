@@ -3,8 +3,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from easy_agents.core import Agent, Context, ToolDepsRegistry
-from easy_agents.tools import find_tool, read_tool
-from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps
+from easy_agents.tools.fs_tools import find_tool, read_tool
+from easy_agents.tools.fs_tools.deps.project_files_deps import ProjectFilesDeps
 
 
 class SymbolAnalysisRequest(BaseModel):

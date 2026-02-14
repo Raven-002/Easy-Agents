@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from easy_agents.core import RunContext, ToolDepsRegistry
-from easy_agents.tools.deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
-from easy_agents.tools.find_tool import find_tool
+from easy_agents.tools.fs_tools.deps.project_files_deps import ProjectFilesDeps, project_files_deps_type
+from easy_agents.tools.fs_tools.find_tool import find_tool
 
 
 @pytest.fixture
