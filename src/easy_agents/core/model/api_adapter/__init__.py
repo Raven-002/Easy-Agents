@@ -1,6 +1,7 @@
 from .api_adapter import ModelApiAdapter
 from .basic_adapters import (
     ApiAdapterExtractXmlReasoningFromContent,
+    ApiAdapterInjectSystemPrompt,
     ApiAdapterSetAutoToolsAsNone,
     ApiAdapterSetRequiredToolsAsPartOfSystemPrompt,
     ApiAdapterStructuredOutputAsTool,
@@ -12,4 +13,5 @@ __all__ = [
     "ApiAdapterExtractXmlReasoningFromContent",
     "ApiAdapterSetRequiredToolsAsPartOfSystemPrompt",
     "ApiAdapterSetAutoToolsAsNone",
+    "ApiAdapterInjectSystemPrompt",
 ]

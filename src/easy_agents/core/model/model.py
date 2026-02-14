@@ -8,6 +8,7 @@ from ..context import AnyChatCompletionMessage, AssistantMessage, UserMessage
 from ..tool import ToolAny
 from .api_adapter import (
     ApiAdapterExtractXmlReasoningFromContent,
+    ApiAdapterInjectSystemPrompt,
     ApiAdapterSetAutoToolsAsNone,
     ApiAdapterSetRequiredToolsAsPartOfSystemPrompt,
     ApiAdapterStructuredOutputAsTool,
@@ -29,6 +30,7 @@ class Model(BaseModel):
     model_provider: Literal["openai", "ollama_chat"]
     model_name: str
     description: str
+    system_prompt_injection: str | None = None
     thinking: bool = False
     assume_available: bool = False
     temperature: float | None = None
@@ -75,6 +77,8 @@ class Model(BaseModel):
             chain.append(ApiAdapterSetRequiredToolsAsPartOfSystemPrompt())
         if self.thinking_in_content:
             chain.append(ApiAdapterExtractXmlReasoningFromContent())
+        if self.system_prompt_injection:
+            chain.append(ApiAdapterInjectSystemPrompt(self.system_prompt_injection))
         return chain
 
     @staticmethod

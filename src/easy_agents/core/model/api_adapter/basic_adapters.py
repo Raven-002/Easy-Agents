@@ -105,3 +105,14 @@ class ApiAdapterSetAutoToolsAsNone(ModelApiAdapter):
 
     def adjust_response(self, response: ModelCompletionResponse) -> None:
         return
+
+
+class ApiAdapterInjectSystemPrompt(ModelApiAdapter):
+    def __init__(self, system_prompt: str) -> None:
+        self.system_prompt = system_prompt
+
+    def adjust_request(self, request: ModelCompletionRequest[Any]) -> None:
+        request.messages = [SystemMessage(content=self.system_prompt)] + list(request.messages)
+
+    def adjust_response(self, response: ModelCompletionResponse) -> None:
+        return
